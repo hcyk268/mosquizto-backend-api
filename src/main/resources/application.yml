@@ -16,8 +16,15 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-#jwt:
-#  expiryHour: 1
-#  expiryDay: 14
-#  accessKey: JT/tDvZO6dVigguT0KH46c3ReORHnmOUluglIdogCXw=
-#  refreshKey: HNkhDWCBoC7gCzCk44BZGsJ1CCqWZowXoKJFnT8EDww=
+open-api:
+  service:
+    title: Api Service
+    version: v1.0
+    server-url: http://localhost:8080/
+    server-name: localhost
+
+jwt:
+  expiryHour: 1
+  expiryDay: 14
+  accessKey: JT/tDvZO6dVigguT0KH46c3ReORHnmOUluglIdogCXw=
+  refreshKey: HNkhDWCBoC7gCzCk44BZGsJ1CCqWZowXoKJFnT8EDww=
