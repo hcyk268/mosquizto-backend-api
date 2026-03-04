@@ -1,0 +1,50 @@
+package com.mosquizto.api.service.impl;
+
+import com.mosquizto.api.dto.request.AddUserRequest;
+import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.model.Role;
+import com.mosquizto.api.model.User;
+import com.mosquizto.api.repository.RoleRepository;
+import com.mosquizto.api.repository.UserRepository;
+import com.mosquizto.api.service.UserService;
+import com.mosquizto.api.util.UserStatus;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@RequiredArgsConstructor
+@Service
+public class UserServiceImpl implements UserService {
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public User getByUsername(String username) {
+        return this.userRepository.findByUsername(username)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+    }
+
+    @Override
+    public long addUser(AddUserRequest request) {
+        Role role = this.roleRepository.findByName(request.getRole())
+                .orElseThrow(() -> new ResourceNotFoundException("Role must be not " + request.getRole()));
+
+        User user = User.builder()
+                .fullName(request.getFullName())
+                .email(request.getEmail())
+                .username(request.getUsername())
+                .password(this.passwordEncoder.encode(request.getPassword()))
+                .status(UserStatus.ACTIVE)
+                .role(role)
+                .build();
+
+        this.userRepository.save(user);
+
+        return user.getId();
+    }
+}
