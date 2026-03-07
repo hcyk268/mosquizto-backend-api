@@ -91,4 +91,18 @@ public class GlobalExceptionHandler {
 
         return errorResponse;
     }
+
+    @ExceptionHandler(InvalidDataException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public ErrorResponseException handleInvalidDataException(InvalidDataException e, WebRequest request) {
+
+        ErrorResponseException exception = new ErrorResponseException();
+        exception.setTimestamp(new Date());
+        exception.setStatus(BAD_REQUEST.value());
+        exception.setPath(request.getDescription(false).replace("uri=", ""));
+        exception.setError("Invalid Payload");
+        exception.setMessage(e.getMessage());
+
+        return exception;
+    }
 }

@@ -1,14 +1,12 @@
 package com.mosquizto.api.service.impl;
 
+import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.SignInRequest;
+import com.mosquizto.api.dto.request.SignUpRequest;
 import com.mosquizto.api.dto.response.TokenResponse;
+import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
-import com.mosquizto.api.exception.ResourceNotFoundException;
-import com.mosquizto.api.model.User;
-import com.mosquizto.api.service.AuthenticationService;
-import com.mosquizto.api.service.JwtService;
-import com.mosquizto.api.service.TokenService;
-import com.mosquizto.api.service.UserService;
+import com.mosquizto.api.service.*;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -24,6 +22,8 @@ import org.springframework.stereotype.Service;
 
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
+import java.util.UUID;
+
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -33,6 +33,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UserService userService;
     private final JwtService jwtService;
     private final TokenService tokenService;
+    private final MailService mailService;
 
     @Override
     public TokenResponse authenticate(SignInRequest signIndata) {
@@ -99,5 +100,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .refreshToken(refresh)
                 .accessToken(accessToken)
                 .build();
+    }
+
+    @Override
+    public String createAccount(SignUpRequest signUpRequest) {
+        if (!signUpRequest.getPassword().equals(signUpRequest.getConfirmPassword()))
+            throw new InvalidDataException("Password not match");
+
+        AddUserRequest user = AddUserRequest.builder()
+                .fullName(signUpRequest.getFullName())
+                .username(signUpRequest.getUsername())
+                .email(signUpRequest.getEmail())
+                .password(signUpRequest.getPassword())
+                .role("USER")
+                .build();
+
+        long userId = this.userService.addUser(user);
+
+        String verifyCode = UUID.randomUUID().toString();
+        this.userService.saveVerifyCode(userId, verifyCode);
+
+        this.mailService.sendConfirmLink(signUpRequest.getEmail(), userId, signUpRequest.getFullName(), verifyCode);
+
+        return signUpRequest.getUsername();
     }
 }

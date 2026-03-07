@@ -1,6 +1,8 @@
 package com.mosquizto.api.controller;
 
 import com.mosquizto.api.dto.request.SignInRequest;
+import com.mosquizto.api.dto.request.SignUpRequest;
+import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.service.AuthenticationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,6 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+
+    @PostMapping("/register")
+    public ResponseData<String> signUp(@Valid @RequestBody SignUpRequest signUpRequest) {
+        return new ResponseData<>(HttpStatus.OK.value(), "signup successfully, please check email and confirm", this.authenticationService.createAccount(signUpRequest));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> access(@Valid @RequestBody SignInRequest signIndata) {

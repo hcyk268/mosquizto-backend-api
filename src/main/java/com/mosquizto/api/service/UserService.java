@@ -8,4 +8,12 @@ public interface UserService {
     User getByUsername(String username);
 
     long addUser(AddUserRequest request);
+
+    boolean checkEmailExists(String email);
+
+    boolean checkUsernameExists(String username);
+
+    void confirmUser(long userId, String verifyCode);
+
+    void saveVerifyCode(long userId, String verifyCode);
 }
