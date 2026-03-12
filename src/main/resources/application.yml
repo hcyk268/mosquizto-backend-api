@@ -47,6 +47,7 @@ jwt:
   expiryDay: 14
   accessKey: JT/tDvZO6dVigguT0KH46c3ReORHnmOUluglIdogCXw=
   refreshKey: HNkhDWCBoC7gCzCk44BZGsJ1CCqWZowXoKJFnT8EDww=
+  resetKey: JT/tDvZO6dVigguT0KH46c3ReORHnmOUluglIdogCXw=
 
 endpoint:
   confirmUser: http://localhost:8080/user/confirm

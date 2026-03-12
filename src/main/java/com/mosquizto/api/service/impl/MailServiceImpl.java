@@ -35,6 +35,7 @@ public class MailServiceImpl implements MailService {
     @Value("${endpoint.confirmUser}")
     private String endpointConfirmUser;
 
+    @Async
     @Override
     public String sendEmail(String recipients, String subject, String content, MultipartFile[] files)
             throws MessagingException, UnsupportedEncodingException {
@@ -89,6 +90,32 @@ public class MailServiceImpl implements MailService {
             log.info("Confirmation email sent to {}", emailTo);
         } catch (MessagingException | UnsupportedEncodingException e) {
             log.error("Failed to send confirmation email to {}: {}", emailTo, e.getMessage());
+        }
+    }
+
+    @Async
+    @Override
+    public void sendVerifyCode(String emailTo, String verCode) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
+            Context context = new Context();
+
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("verCode", verCode);
+            context.setVariables(properties);
+
+            helper.setFrom(emailFrom, "Mosquizto Company");
+            helper.setTo(emailTo);
+            helper.setSubject("Code Verify");
+            String html = templateEngine.process("verify-code.html", context);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Verify code sent to {}", emailTo);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Failed to send email to {}: {}", emailTo, e.getMessage());
         }
     }
 }

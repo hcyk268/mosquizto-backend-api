@@ -11,4 +11,6 @@ public interface MailService {
                         throws MessagingException, UnsupportedEncodingException;
 
         void sendConfirmLink(String emailTo, long userId, String fullName, String verifyCode);
+
+        void sendVerifyCode(String emailTo, String verCode);
 }

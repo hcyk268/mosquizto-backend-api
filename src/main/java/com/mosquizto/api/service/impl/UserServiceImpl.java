@@ -84,4 +84,15 @@ public class UserServiceImpl implements UserService {
         user.setVerifyCode(verifyCode);
         this.userRepository.save(user);
     }
+
+    @Override
+    public User getByEmail(String email) {
+        return this.userRepository.findByEmail(email)
+                .orElseThrow(() -> new InvalidDataException("User not found"));
+    }
+
+    @Override
+    public void save(User user) {
+        this.userRepository.save(user);
+    }
 }

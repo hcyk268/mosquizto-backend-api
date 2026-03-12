@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Code</title>
+    <style>
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7fa;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }
+        .email-wrapper {
+            width: 100%;
+            background-color: #f4f7fa;
+            padding: 40px 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 32px;
+            font-weight: 800;
+            letter-spacing: 1.5px;
+        }
+        .content {
+            padding: 50px 40px;
+            text-align: center;
+        }
+        .content h2 {
+            margin-top: 0;
+            color: #1f2937;
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #4b5563;
+            margin-bottom: 30px;
+        }
+        .code-container {
+            background-color: #f3f4f6;
+            border: 2px dashed #818cf8;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .code-box {
+            font-size: 42px;
+            font-weight: 800;
+            color: #4f46e5;
+            letter-spacing: 8px;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.05);
+        }
+        .warning-text {
+            font-size: 14px;
+            color: #ef4444;
+            font-weight: 500;
+            margin-bottom: 0;
+        }
+        .footer {
+            background-color: #f9fafb;
+            padding: 30px;
+            text-align: center;
+            font-size: 13px;
+            color: #9ca3af;
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 5px 0;
+        }
+        .footer-logo {
+            font-weight: bold;
+            color: #6b7280;
+            margin-bottom: 10px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-wrapper">
+        <div class="container">
+            <div class="header">
+                <h1>MOSQUIZTO</h1>
+            </div>
+            <div class="content">
+                <h2>Your Verification Code</h2>
+                <p>Hello! We received a request to access your Mosquizto account. Here is your verification code. If you did not make this request, please ignore this email.</p>
+                
+                <div class="code-container">
+                    <div class="code-box" th:text="${verCode}">123456</div>
+                </div>
+                
+                <p class="warning-text">⚠️ This code will expire in 5 minutes. Do not share it with anyone.</p>
+                
+                <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 40px 0 20px 0;">
+                
+                <p style="font-size: 14px; color: #6b7280; margin-bottom: 0;">
+                    Xin chào! Chúng tôi đã nhận được yêu cầu truy cập tài khoản Mosquizto của bạn. Mã xác minh của bạn ở trên. Nếu bạn không thực hiện yêu cầu này, vui lòng báo cáo hoặc bỏ qua email này.
+                </p>
+            </div>
+            <div class="footer">
+                <span class="footer-logo">MOSQUIZTO APP</span>
+                <p>&copy; 2026 Mosquizto. All rights reserved.</p>
+                <p>Need help? Contact our support team.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

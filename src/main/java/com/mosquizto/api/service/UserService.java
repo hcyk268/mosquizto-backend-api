@@ -16,4 +16,8 @@ public interface UserService {
     void confirmUser(long userId, String verifyCode);
 
     void saveVerifyCode(long userId, String verifyCode);
+
+    User getByEmail(String email);
+
+    void save(User user);
 }
