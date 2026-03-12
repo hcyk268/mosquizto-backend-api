@@ -19,7 +19,7 @@ public class SignUpRequest implements Serializable {
     private String username;
 
     @NotBlank(message = "email must be not blank")
-    @Email
+    @Email(message = "Email form invalid")
     private String email;
 
     @NotBlank(message = "password must be not blank")
