@@ -68,6 +68,6 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return UserStatus.ACTIVE.equals(this.status);
     }
 }

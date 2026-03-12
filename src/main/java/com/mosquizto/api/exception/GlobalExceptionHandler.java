@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.response.ErrorResponseException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -12,8 +13,7 @@ import org.springframework.web.context.request.WebRequest;
 
 import java.util.Date;
 
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.*;
 
 @Slf4j
 @RestControllerAdvice
@@ -105,4 +105,18 @@ public class GlobalExceptionHandler {
 
         return exception;
     }
+
+    @ExceptionHandler(DisabledException.class)
+    @ResponseStatus(FORBIDDEN)
+    public ErrorResponseException handleDisabledException(DisabledException e, WebRequest request) {
+        ErrorResponseException err = new ErrorResponseException();
+        err.setTimestamp(new Date());
+        err.setStatus(FORBIDDEN.value());
+        err.setPath(request.getDescription(false).replace("uri=", ""));
+        err.setError("Forbidden");
+        err.setMessage("Account is not activated. Please verify your email.");
+        return err;
+    }
+
+
 }
