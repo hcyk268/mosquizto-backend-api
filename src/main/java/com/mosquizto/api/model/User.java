@@ -39,6 +39,9 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserStatus status;
 
+    @Column(name = "verify_code")
+    private String verifyCode;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
@@ -65,6 +68,6 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return UserStatus.ACTIVE.equals(this.status);
     }
 }

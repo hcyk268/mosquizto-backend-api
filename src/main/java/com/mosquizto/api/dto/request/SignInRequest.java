@@ -13,6 +13,6 @@ public class SignInRequest implements Serializable {
     @NotBlank(message = "username must be not blank")
     private String username;
 
-    @NotBlank(message = "username must be not blank")
+    @NotBlank(message = "password must be not blank")
     private String password;
 }

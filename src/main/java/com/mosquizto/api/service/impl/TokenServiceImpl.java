@@ -1,10 +1,12 @@
 package com.mosquizto.api.service.impl;
 
+import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Token;
 import com.mosquizto.api.repository.TokenRepository;
 import com.mosquizto.api.service.TokenService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
@@ -31,5 +33,22 @@ public class TokenServiceImpl implements TokenService {
             token.setRefreshToken(refreshToken);
         }
         this.tokenRepository.save(token);
+    }
+
+    @Override
+    public void deleteById(long id) {
+        this.tokenRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void deleteByUsername(String username) {
+        this.tokenRepository.deleteByUsername(username);
+    }
+
+    @Override
+    public Token getByUsername(String username) {
+        return this.tokenRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Token not found"));
     }
 }

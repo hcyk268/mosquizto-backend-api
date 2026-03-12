@@ -7,10 +7,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
 
@@ -25,5 +22,11 @@ public class UserController {
     public ResponseData<Long> addUser(@Valid @RequestBody AddUserRequest request) {
         long userId = this.userService.addUser(request);
         return new ResponseData<>(HttpStatus.OK.value(), "Add user success", userId);
+    }
+
+    @GetMapping("/confirm/{userId}")
+    public ResponseData<?> confirmUser(@PathVariable long userId, @RequestParam String verifyCode) {
+        this.userService.confirmUser(userId, verifyCode);
+        return new ResponseData<>(HttpStatus.OK.value(), "User confirmed successfully");
     }
 }
