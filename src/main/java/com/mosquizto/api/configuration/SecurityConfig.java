@@ -45,7 +45,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // .anyRequest().permitAll())
                         .requestMatchers("/auth/logout").authenticated()
-                        .requestMatchers("/auth/**", "/user/confirm/**").permitAll()
+                        .requestMatchers("/auth/**", "/user/confirm/**", "/error").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
