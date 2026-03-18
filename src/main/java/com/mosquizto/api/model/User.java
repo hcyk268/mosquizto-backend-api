@@ -35,7 +35,7 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "status")
+    @Column(name = "status", columnDefinition = "user_status")
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserStatus status;
 

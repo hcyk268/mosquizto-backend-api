@@ -48,16 +48,3 @@ docker compose up -d
   ```bash
   docker compose down
   ```
-
----
-
-## ⚠️ Lưu ý cho lần chạy đầu tiên
-
-Trong lần đầu tiên khởi chạy ứng dụng, database sẽ trống và chưa có dữ liệu danh mục quyền (Role). 
-Bạn bắt buộc phải thêm 2 role cơ bản là `USER` và `ADMIN` để hệ thống Authentication phân quyền hợp lệ.
-
-Chạy lệnh dưới đây để kết nối thẳng vào database PostgreSQL trong container và insert dữ liệu:
-
-```bash
-docker exec -it mosquizto_dbpg psql -U user123 -d mosquiztodb -c "INSERT INTO tbl_role (id, name) VALUES (1, 'ADMIN'), (2, 'USER');"
-```
