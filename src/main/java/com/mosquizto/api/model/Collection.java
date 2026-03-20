@@ -3,6 +3,7 @@ package com.mosquizto.api.model;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @AllArgsConstructor
@@ -10,9 +11,10 @@ import lombok.NoArgsConstructor;
 @Table(name = "tbl_collection")
 @Entity
 @Builder
+@Data
 public class Collection extends AbstractEntity<Integer> {
 
-    private String tile;
+    private String title;
     @Column(columnDefinition = "TEXT")
     private String description ;
     private Boolean visibility ;
