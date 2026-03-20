@@ -22,16 +22,16 @@ import java.util.List;
 @Entity
 public class User extends AbstractEntity<Long> implements UserDetails, Serializable {
 
-    @Column(name = "full_name")
+    @Column(name = "full_name", length = 150)
     private String fullName;
 
-    @Column(name = "email")
+    @Column(name = "email", length = 255)
     private String email;
 
-    @Column(name = "username")
+    @Column(name = "username", length = 100)
     private String username;
 
-    @Column(name = "password")
+    @Column(name = "password", length = 255)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -39,7 +39,7 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     private UserStatus status;
 
-    @Column(name = "verify_code")
+    @Column(name = "verify_code", length = 50)
     private String verifyCode;
 
     @ManyToOne

@@ -41,6 +41,13 @@ public class PreFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        String path = request.getRequestURI();
+        // Skip filter for public auth endpoints (they don't use access tokens)
+        return path.startsWith("/auth/") && !path.equals("/auth/logout");
+    }
+
+    @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
         String authorization = request.getHeader(AUTHORIZATION);

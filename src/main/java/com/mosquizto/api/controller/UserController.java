@@ -115,7 +115,8 @@ public class UserController {
                     sent to their email after registration.
                     
                     The `userId` and `verifyCode` are embedded in the confirmation link.
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(

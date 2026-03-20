@@ -32,7 +32,7 @@ public class APIDocConfig {
                         .version(version)
                         .contact(new Contact().name("Mosquizto Team"))
                         .license(new License().name("Apache 2.0").url("https://springdoc.org")))
-                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME))
+                .addSecurityItem(new SecurityRequirement())
                 .components(new Components()
                         .addSecuritySchemes(SECURITY_SCHEME_NAME, new SecurityScheme()
                                 .name(SECURITY_SCHEME_NAME)

@@ -1,0 +1,1 @@
+ALTER TABLE tbl_user ALTER COLUMN verify_code TYPE VARCHAR(50);

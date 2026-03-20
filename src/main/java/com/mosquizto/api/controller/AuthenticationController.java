@@ -43,7 +43,8 @@ public class AuthenticationController {
                     The user must click the link in the email before being able to log in.
                     
                     **Password rules:** minimum 8 characters, must contain uppercase, lowercase and a digit.
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(
@@ -108,7 +109,8 @@ public class AuthenticationController {
                     and a **refresh token** (expires in 14 days).
                     
                     > ⚠️ The account must have a verified email before login is allowed.
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(
@@ -298,7 +300,8 @@ public class AuthenticationController {
                     
                     > **Note:** The request body is a **raw string** containing the email address,
                     > not a JSON object. Example: `"user@example.com"`
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(
@@ -341,7 +344,8 @@ public class AuthenticationController {
             description = """
                     Verifies the OTP received by email after calling `/auth/forgot-password`.
                     If valid, returns a **secretKey** (JWT reset token) to be used in the reset-password step.
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(
@@ -400,7 +404,8 @@ public class AuthenticationController {
                     `newPassword` and `confirmPassword` must match and satisfy the password rules.
                     
                     **Password rules:** minimum 8 characters, must contain uppercase, lowercase and a digit.
-                    """
+                    """,
+            security = {}
     )
     @ApiResponses({
             @ApiResponse(
