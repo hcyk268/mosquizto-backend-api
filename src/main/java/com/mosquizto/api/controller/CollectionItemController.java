@@ -13,6 +13,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.service.invoker.HttpRequestValues;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/collection/item")
 @RequiredArgsConstructor
@@ -24,7 +26,15 @@ public class CollectionItemController {
     @PostMapping
     public ResponseData<CollectionItemResponse> addNewItem(HttpServletRequest httpServletRequest,
                                                            @RequestBody CollectionItemRequest request){
-        return new ResponseData<CollectionItemResponse>(HttpStatus.OK.value(),"Success :) ",
+        return new ResponseData<>(HttpStatus.OK.value(),"Success :) ",
                 collectionItemService.addNewItem(request,httpServletRequest));
+    }
+    @Operation(summary = "get all items in a collection" , security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("{id}")
+    public ResponseData<List<CollectionItemResponse>> getItemsByCollectionId(HttpServletRequest httpServletRequest,
+                                                                   @PathVariable("id") Integer collectionId)
+    {
+        return new ResponseData<>(HttpStatus.OK.value(), "Success",
+                collectionItemService.getItemsByCollectionId(collectionId,httpServletRequest));
     }
 }
