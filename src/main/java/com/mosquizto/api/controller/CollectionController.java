@@ -31,8 +31,8 @@ public class CollectionController {
     @Operation(summary = "Get my collections", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/my-list")
     public ResponseData<PageResponse<CollectionResponse>> getMyList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "1" , name = "page") int page,
+            @RequestParam(defaultValue = "10" , name = "size") int size,
             HttpServletRequest request) {
         return new ResponseData<>(HttpStatus.OK.value(), "Success", collectionService.getMyCollections(page, size, request));
     }

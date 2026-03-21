@@ -7,6 +7,7 @@ import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
+import com.mosquizto.api.service.AuthenticatedUserService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.service.UserService;
@@ -26,16 +27,12 @@ import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 public class CollectionServiceImpl implements CollectionService {
 
     private final CollectionRepository collectionRepository;
-    private final UserService userService;
-    private final JwtService jwtService;
-
+    private final AuthenticatedUserService authenticatedUserService ;
     @Override
     public Integer addCollection(CollectionRequest request, HttpServletRequest httpServletRequest) {
-       // Lấy người dùng hiện tại
-        String token = httpServletRequest.getHeader(AUTHORIZATION).substring(7);
-        String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = userService.getByUsername(username);
+        User user = authenticatedUserService.getAuthenticatedUser(httpServletRequest);
 
+        System.out.println(user.getId() + " " + user.getUsername());
         Collection collection = Collection.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -48,12 +45,9 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     public PageResponse<CollectionResponse> getMyCollections(int page, int size, HttpServletRequest request) {
-        String token = request.getHeader(AUTHORIZATION).substring(7);
-        String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = userService.getByUsername(username);
+        User user = authenticatedUserService.getAuthenticatedUser(request);
 
         Page<Collection> collections = collectionRepository.findAllByUserId(user.getId(), PageRequest.of(page - 1, size));
-
         List<CollectionResponse> items = collections.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();

@@ -3,6 +3,8 @@ package com.mosquizto.api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
