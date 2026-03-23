@@ -14,5 +14,7 @@ public interface CollectionItemService {
     // cái này ko phân biệt người tạo :v
     List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId, HttpServletRequest httpServletRequest);
 
-    CollectionItemResponse deleteCollectionItem(CollectionItemRequest request , HttpServletRequest httpServletRequest);
+    CollectionItemResponse deleteCollectionItem(Integer id , HttpServletRequest httpServletRequest);
+
+        CollectionItemResponse updateCollectionItem(Integer id , CollectionItemRequest request,  HttpServletRequest httpServletRequest);
 }

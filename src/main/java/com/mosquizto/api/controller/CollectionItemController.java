@@ -8,7 +8,9 @@ import com.mosquizto.api.service.CollectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -22,12 +24,11 @@ import java.util.List;
 @Tag(name = "Collection Item", description = "APIs for managing flashcard collection items")
 public class CollectionItemController {
     private final CollectionItemService collectionItemService ;
-    private final CollectionService collectionService;
 
     @Operation(summary = "create item in collection", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping
     public ResponseData<CollectionItemResponse> addNewItem(HttpServletRequest httpServletRequest,
-                                                           @RequestBody CollectionItemRequest request){
+                                                           @Valid @RequestBody CollectionItemRequest request){
         return new ResponseData<>(HttpStatus.OK.value(),"Success :) ",
                 collectionItemService.addNewItem(request,httpServletRequest));
     }
@@ -41,11 +42,20 @@ public class CollectionItemController {
     }
 
     @Operation(summary = "delete item form collection", security = @SecurityRequirement(name= "bearerAuth"))
-    @DeleteMapping("/delete")
-    public ResponseData<CollectionItemResponse> deleteItem(@RequestBody CollectionItemRequest  request,
+    @DeleteMapping("/{id}")
+    public ResponseData<CollectionItemResponse> deleteItem(@PathVariable  Integer id,
                                                            HttpServletRequest httpServletRequest){
         return new ResponseData<>(HttpStatus.OK.value(), "Success",
-                collectionItemService.deleteCollectionItem(request,httpServletRequest)
+                collectionItemService.deleteCollectionItem(id,httpServletRequest)
         );
+    }
+    @Operation(summary = "update item" , security =  @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("{id}")
+    public ResponseData<CollectionItemResponse> updateItem(@PathVariable Integer id ,
+                                                           @Valid @RequestBody CollectionItemRequest request,
+                                                           HttpServletRequest httpServletRequest)
+    {
+        return new ResponseData<>(HttpStatus.OK.value() , "Success",
+                collectionItemService.updateCollectionItem(id, request,httpServletRequest));
     }
 }
