@@ -35,7 +35,7 @@ public class UserCollectionItemProgress {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
-    @Column(name = "status")
+    @Column(name = "status", columnDefinition = "progress_status")
     private ProgressStatus status;
 
     @Column(name = "correct_count")

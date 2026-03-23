@@ -36,7 +36,7 @@ public class UserCollection {
 
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Enumerated(EnumType.STRING)
-    @Column(name = "role")
+    @Column(name = "role", columnDefinition = "collection_role")
     private CollectionRole role;
 
     @Column(name = "created_at")
