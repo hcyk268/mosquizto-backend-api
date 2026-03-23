@@ -60,6 +60,19 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         return response ;
     }
 
+    @Override
+    public CollectionItemResponse deleteCollectionItem(CollectionItemRequest request, HttpServletRequest httpServletRequest) {
+        var user = authenticatedUserService.getAuthenticatedUser(httpServletRequest);
+        Collection collection = findCollectionById(request.getCollectionId()) ;
+        if (!user.getId().equals(collection.getUser().getId()))
+        {
+            throw new InvalidDataException("You do not have permission to add items to this collection");
+        }
+        var targetItem = CollectionItemRequest.mapToCollectionItem(request);
+        collectionItemRepository.delete(targetItem);
+        return CollectionItemResponse.createResponseBy(targetItem);
+    }
+
     // Support method;
     private Collection findCollectionById(Integer collectionId)
     {

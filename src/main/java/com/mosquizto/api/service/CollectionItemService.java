@@ -11,6 +11,8 @@ import java.util.List;
 
 public interface CollectionItemService {
     CollectionItemResponse addNewItem(CollectionItemRequest request, HttpServletRequest httpServletRequest);
-    // cái này ko phân biệt
+    // cái này ko phân biệt người tạo :v
     List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId, HttpServletRequest httpServletRequest);
+
+    CollectionItemResponse deleteCollectionItem(CollectionItemRequest request , HttpServletRequest httpServletRequest);
 }

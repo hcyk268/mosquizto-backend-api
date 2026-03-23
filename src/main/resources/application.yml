@@ -3,9 +3,9 @@ spring:
     name: Mosquizto-Backend
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/mosquiztodb
+    username: ${DB_USER:postgres} # Mặc định là postgres nếu ko có biến env
+    password: ${DB_PASSWORD:Dat1101&}
 
   flyway:
     enabled: true
@@ -14,20 +14,18 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: true
-
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   mail:
-    from: ${SPRING_MAIL_ADDRESS}
-    username: ${SPRING_MAIL_USERNAME}
-    password: ${SPRING_MAIL_PASSWORD}
     host: smtp.gmail.com
     port: 587
-
+    from: ${MAIL_ADDRESS:tandatthtt@gmail.com}
+    username: ${MAIL_USERNAME:tandatthtt@gmail.com}
+    password: ${MAIL_PASSWORD:ivvv pnre jzry jqrf}
     properties:
       mail:
         smtp:
@@ -35,24 +33,20 @@ spring:
           starttls:
             enable: true
 
-  servlet:
-    multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
-
-open-api:
-  service:
-    title: Api Service
-    version: v1.0
-    server-url: ${SERVER_URL}
-    server-name: localhost
-
 jwt:
   expiryHour: 1
   expiryDay: 14
-  accessKey: ${JWT_ACCESS_KEY}
-  refreshKey: ${JWT_REFRESH_KEY}
-  resetKey: ${JWT_RESET_KEY}
+  # Cần key tối thiểu 32 ký tự để không lỗi bảo mật
+  accessKey: ${JWT_ACCESS_KEY:q1zVZyZ6u8X9mQf5bG2nYxJ3o4pT7wV9rKc8lM2hQ0s=}
+  refreshKey: ${JWT_REFRESH_KEY:q1zVZyZ6u8X9mQf5bG2nYxJ3o4pT7wV9rKc8lM2hQ0s=}
+  resetKey: ${JWT_RESET_KEY:q1zVZyZ6u8X9mQf5bG2nYxJ3o4pT7wV9rKc8lM2hQ0s=}
+
+open-api:
+  service:
+    title: ${OPEN_API_TITLE:Mosquizto API Service}
+    version: ${OPEN_API_VERSION:v1.0}
+    server-url: ${SERVER_URL:http://localhost:8080/}
+    server-name: ${SERVER_NAME:localhost}
 
 endpoint:
-  confirmUser: ${SERVER_URL}user/confirm
+  confirmUser: ${SERVER_URL:http://localhost:8080/}user/confirm
