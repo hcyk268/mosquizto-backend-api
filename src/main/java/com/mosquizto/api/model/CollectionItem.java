@@ -3,6 +3,9 @@ package com.mosquizto.api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -27,4 +30,9 @@ public class CollectionItem extends AbstractEntity<Integer> {
     @JoinColumn(name = "collection_id")
     private Collection collection ;
 
+    @OneToMany(mappedBy = "collectionItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserCollectionItemProgress> userCollectionItemProgresses = new ArrayList<>();
+
 }
+
+

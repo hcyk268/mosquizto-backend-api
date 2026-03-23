@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "tbl_collection")
@@ -23,4 +26,12 @@ public class Collection extends AbstractEntity<Integer> {
     @JoinColumn(name = "user_id")
     private User user ;
 
+    @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<CollectionItem> collectionItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<UserCollection> userCollections = new ArrayList<>();
+
 }
+
+
