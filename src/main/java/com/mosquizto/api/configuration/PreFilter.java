@@ -3,6 +3,7 @@ package com.mosquizto.api.configuration;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mosquizto.api.dto.response.ErrorResponseException;
 import com.mosquizto.api.service.JwtService;
+import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,7 +30,6 @@ import java.io.IOException;
 import java.util.Date;
 
 import static com.mosquizto.api.util.TokenType.ACCESS_TOKEN;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -50,14 +50,12 @@ public class PreFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
-        String authorization = request.getHeader(AUTHORIZATION);
+        String accessToken = AuthorizationHeaderUtils.extractBearerToken(request);
 
-        if (StringUtils.isEmpty(authorization) || !authorization.startsWith("Bearer ")) {
+        if (accessToken == null) {
             filterChain.doFilter(request, response);
             return;
         }
-
-        String accessToken = authorization.substring("Bearer ".length());
 
         try {
             String userName = jwtService.extractUsername(accessToken, ACCESS_TOKEN);

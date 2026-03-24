@@ -13,6 +13,7 @@ import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.service.UserService;
+import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import com.mosquizto.api.util.TokenType;
 import com.mosquizto.api.util.UserStatus;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,8 +25,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @RequiredArgsConstructor
 @Service
@@ -139,7 +138,7 @@ public class UserServiceImpl implements UserService {
         if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword()))
             throw new InvalidDataException("New password must be different from old password");
 
-        String token = request.getHeader(AUTHORIZATION).substring("Bearer ".length());
+        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
 
         String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
 
@@ -156,7 +155,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse getProfile(HttpServletRequest request) {
-        String token = request.getHeader(AUTHORIZATION).substring("Bearer ".length());
+        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
         String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
         User user = this.getByUsername(username);
 
@@ -174,12 +173,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request) {
-        String token = request.getHeader(AUTHORIZATION).substring("Bearer ".length());
+        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
         String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
         User user = this.getByUsername(username);
 
         user.setFullName(updateUserRequest.getFullName());
 
         this.save(user);
+    }
+
+    @Override
+    public User getById(Long userId) {
+        return this.userRepository.findById(userId)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
     }
 }

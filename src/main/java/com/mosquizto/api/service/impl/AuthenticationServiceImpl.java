@@ -6,6 +6,7 @@ import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
 import com.mosquizto.api.service.*;
+import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -14,13 +15,10 @@ import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 import java.security.SecureRandom;
 import java.util.UUID;
@@ -61,13 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public TokenResponse refreshToken(HttpServletRequest request) {
-        String authorization = request.getHeader(AUTHORIZATION);
-
-        if (StringUtils.isBlank(authorization) || !authorization.startsWith("Bearer ")) {
-            throw new InvalidTokenException("Token is required");
-        }
-
-        String refresh = authorization.substring("Bearer ".length());
+        String refresh = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
 
         String username;
         try {
@@ -131,13 +123,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public String logout(HttpServletRequest request) {
-        String authorization = request.getHeader(AUTHORIZATION);
-
-        if (StringUtils.isBlank(authorization) || !authorization.startsWith("Bearer ")) {
-            throw new InvalidTokenException("Token is required");
-        }
-
-        String accessToken = authorization.substring("Bearer ".length());
+        String accessToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
 
         String username;
         try {
