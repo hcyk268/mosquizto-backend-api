@@ -32,7 +32,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .visibility(request.getVisibility())
-                .user(user)
+                .createdBy(user)
                 .build();
 
         return collectionRepository.save(collection).getId();
@@ -42,7 +42,7 @@ public class CollectionServiceImpl implements CollectionService {
     public PageResponse<CollectionResponse> getMyCollections(int page, int size, HttpServletRequest request) {
         User user = authenticatedUserService.getAuthenticatedUser(request);
 
-        Page<Collection> collections = collectionRepository.findAllByUserId(user.getId(), PageRequest.of(page - 1, size));
+        Page<Collection> collections = collectionRepository.findAllByCreatedById(user.getId(), PageRequest.of(page - 1, size));
         List<CollectionResponse> items = collections.getContent().stream()
                 .map(this::mapToResponse)
                 .toList();

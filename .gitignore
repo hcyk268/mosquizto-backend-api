@@ -35,3 +35,4 @@ build/
 
 ### Environment / Secrets ###
 .env
+**/src/main/resources/application.yml

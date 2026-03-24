@@ -10,7 +10,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface UserCollectionReposotory extends JpaRepository<UserCollection, UserCollectionId> {
+public interface UserCollectionRepository extends JpaRepository<UserCollection, UserCollectionId> {
 
     @Query("select uc from UserCollection uc join fetch uc.user where uc.collection.id = :collectionId")
     List<UserCollection> findAllMembersByCollectionId(@Param("collectionId") Integer collectionId);

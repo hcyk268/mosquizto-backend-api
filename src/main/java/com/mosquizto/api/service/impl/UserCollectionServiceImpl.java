@@ -9,7 +9,7 @@ import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionRepository;
-import com.mosquizto.api.repository.UserCollectionReposotory;
+import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.service.UserCollectionService;
@@ -30,7 +30,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     private final JwtService jwtService;
     private final UserService userService;
     private final CollectionRepository collectionRepository;
-    private final UserCollectionReposotory userCollectionReposotory;
+    private final UserCollectionRepository userCollectionRepository;
 
     @Override
     public void shareCollection(String token, Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
@@ -56,7 +56,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .collectionId(collection.getId())
                 .build();
 
-        UserCollection userCollection = this.userCollectionReposotory.findById(id)
+        UserCollection userCollection = this.userCollectionRepository.findById(id)
                 .orElseGet(() -> UserCollection.builder()
                         .id(id)
                         .user(sharedUser)
@@ -64,7 +64,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                         .build());
 
         userCollection.setRole(shareCollectionRequest.getRole());
-        this.userCollectionReposotory.save(userCollection);
+        this.userCollectionRepository.save(userCollection);
     }
 
     @Override
@@ -82,7 +82,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     .collectionId(collectionId)
                     .build();
 
-            if (!this.userCollectionReposotory.existsById(id)) {
+            if (!this.userCollectionRepository.existsById(id)) {
                 throw new InvalidDataException("You can not access members list");
             }
         }
@@ -95,7 +95,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .role(CollectionRole.OWNER)
                 .build());
 
-        this.userCollectionReposotory.findAllMembersByCollectionId(collectionId)
+        this.userCollectionRepository.findAllMembersByCollectionId(collectionId)
                 .forEach(userCollection -> members.putIfAbsent(
                         userCollection.getUser().getId(), MemberResponse.builder()
                             .username(userCollection.getUser().getUsername())
@@ -127,7 +127,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(user.getId())
                 .build();
 
-        boolean isJoinedCollection = this.userCollectionReposotory.existsById(id);
+        boolean isJoinedCollection = this.userCollectionRepository.existsById(id);
 
         if (!isJoinedCollection) {
             UserCollection userCollection = UserCollection.builder()
@@ -137,7 +137,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     .role(CollectionRole.VIEWER)
                     .build();
 
-            this.userCollectionReposotory.save(userCollection);
+            this.userCollectionRepository.save(userCollection);
         }
     }
 
@@ -161,8 +161,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(userId)
                 .build();
 
-        if (this.userCollectionReposotory.existsById(idDelete)) {
-            this.userCollectionReposotory.deleteById(idDelete);
+        if (this.userCollectionRepository.existsById(idDelete)) {
+            this.userCollectionRepository.deleteById(idDelete);
         }
     }
 }
