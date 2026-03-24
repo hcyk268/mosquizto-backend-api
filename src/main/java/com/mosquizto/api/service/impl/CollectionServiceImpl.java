@@ -9,9 +9,6 @@ import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.service.AuthenticatedUserService;
 import com.mosquizto.api.service.CollectionService;
-import com.mosquizto.api.service.JwtService;
-import com.mosquizto.api.service.UserService;
-import com.mosquizto.api.util.TokenType;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,8 +16,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @Service
 @RequiredArgsConstructor
@@ -89,7 +84,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .title(collection.getTitle())
                 .description(collection.getDescription())
                 .visibility(collection.getVisibility())
-                .userId(collection.getUser().getId())
+                .userId(collection.getCreatedBy().getId())
                 .createdAt(collection.getCreatedAt())
                 .updatedAt(collection.getUpdatedAt())
                 .build();

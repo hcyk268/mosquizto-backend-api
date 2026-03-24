@@ -2,8 +2,6 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CollectionItemRequest;
 import com.mosquizto.api.dto.response.CollectionItemResponse;
-import com.mosquizto.api.dto.response.CollectionResponse;
-import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Collection;
@@ -17,7 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,7 +29,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         User user = authenticatedUserService.getAuthenticatedUser(httpServletRequest);
         Collection collection = findCollectionById(request.getCollectionId());
 
-        if (!user.getId().equals(collection.getUser().getId())) {
+        if (!user.getId().equals(collection.getCreatedBy().getId())) {
             throw new InvalidDataException("You do not have permission to add items to this collection");
         }
 
@@ -47,7 +44,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         var collection = findCollectionById(collectionId);
         var user = authenticatedUserService.getAuthenticatedUser(httpServletRequest) ;
         if(collection.getVisibility().equals(false) &&
-            !user.getId().equals(collection.getUser().getId()) ) // Creator doesn't share this collection
+            !user.getId().equals(collection.getCreatedBy().getId()) ) // Creator doesn't share this collection
         {
             throw new InvalidDataException("You do not have permission to see this collection");
         }
