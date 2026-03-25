@@ -28,6 +28,9 @@ public class Collection extends AbstractEntity<Integer> {
 
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CollectionItem> collectionItems = new ArrayList<>();
+
+    @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<StudySession> studySessions = new ArrayList<>();
 }
 
 

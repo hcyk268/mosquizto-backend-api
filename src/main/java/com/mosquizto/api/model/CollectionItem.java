@@ -31,7 +31,7 @@ public class CollectionItem extends AbstractEntity<Integer> {
     private Collection collection ;
 
     @OneToMany(mappedBy = "collectionItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserCollectionItemProgress> userCollectionItemProgresses = new ArrayList<>();
+    private List<StudySessionDetail> studySessionDetails = new ArrayList<>();
 }
 
 
