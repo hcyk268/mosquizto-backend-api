@@ -30,7 +30,6 @@ CREATE TABLE IF NOT EXISTS tbl_collection_item (
     created_at    TIMESTAMP WITHOUT TIME ZONE,
     updated_at    TIMESTAMP WITHOUT TIME ZONE
 );
-
 -- ----------------------------
 -- INDEX
 -- ----------------------------

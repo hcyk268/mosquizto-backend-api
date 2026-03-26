@@ -24,14 +24,13 @@ public class Collection extends AbstractEntity<Integer> {
 
     @ManyToOne(targetEntity = User.class, cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
-    private User user ;
+    private User createdBy;
 
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CollectionItem> collectionItems = new ArrayList<>();
 
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<UserCollection> userCollections = new ArrayList<>();
-
+    private List<StudySession> studySessions = new ArrayList<>();
 }
 
 

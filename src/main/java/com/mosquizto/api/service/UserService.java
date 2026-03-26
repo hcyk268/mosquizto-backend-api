@@ -33,4 +33,6 @@ public interface UserService {
     UserResponse getProfile(HttpServletRequest request);
 
     void updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request);
+
+    User getById(Long userId);
 }

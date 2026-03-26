@@ -14,5 +14,5 @@ import java.util.Optional;
 
 @Repository
 public interface CollectionRepository extends JpaRepository<Collection, Integer> {
-    Page<Collection> findAllByUserId(Long userId, Pageable pageable);
+    Page<Collection> findAllByCreatedById(Long userId, Pageable pageable);
 }
