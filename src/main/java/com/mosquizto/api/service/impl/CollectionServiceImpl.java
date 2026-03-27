@@ -78,6 +78,17 @@ public class CollectionServiceImpl implements CollectionService {
         collectionRepository.deleteById(id);
     }
 
+    @Override
+    public Collection getById(Integer id) {
+        return this.collectionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection Not Found"));
+    }
+
+    @Override
+    public Collection save(Collection collection) {
+        return this.collectionRepository.save(collection);
+    }
+
     private CollectionResponse mapToResponse(Collection collection) {
         return CollectionResponse.builder()
                 .id(collection.getId())
