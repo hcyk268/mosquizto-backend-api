@@ -45,14 +45,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionService.getById(startStudySession.getCollectionId());
 
-        StudySession studySession = StudySession.builder()
-                .user(user)
-                .collection(collection)
-                .totalScore(0)
-                .totalWrong(0)
-                .totalCorrect(0)
-                .startedAt(new Date())
-                .build();
+        StudySession studySession = StudySession.start(user, collection, new Date());
 
         studySession = this.studySessionRepository.save(studySession);
 
@@ -71,10 +64,6 @@ public class StudySessionServiceImpl implements StudySessionService {
             throw new InvalidDataException("You do not have permission to answer in this session");
         }
 
-        if (studySession.getCompletedAt() != null) {
-            throw new InvalidDataException("This study session has already been completed");
-        }
-
         Integer collectionId = studySession.getCollection().getId();
         CollectionItem collectionItem = collectionItemRepository.findByCollectionIdAndTerm(collectionId, answerRequest.getTerm())
                 .orElseThrow(() -> new ResourceNotFoundException(
@@ -84,20 +73,12 @@ public class StudySessionServiceImpl implements StudySessionService {
         boolean isCorrect = correctDefinition != null
                 && correctDefinition.trim().equalsIgnoreCase(answerRequest.getDefinition().trim());
 
-        StudySessionDetail detail = StudySessionDetail.builder()
-                .studySession(studySession)
-                .collectionItem(collectionItem)
-                .isCorrect(isCorrect)
-                .responseTimeMs(answerRequest.getResponseTime())
-                .build();
+        StudySessionDetail detail = studySession.recordAnswer(
+                collectionItem,
+                isCorrect,
+                answerRequest.getResponseTime()
+        );
         studySessionDetailRepository.save(detail);
-
-        if (isCorrect) {
-            studySession.setTotalCorrect(studySession.getTotalCorrect() + 1);
-            studySession.setTotalScore(studySession.getTotalScore() + 1);
-        } else {
-            studySession.setTotalWrong(studySession.getTotalWrong() + 1);
-        }
         studySessionRepository.save(studySession);
 
         return this.studySessionMapper.toAnswerResultResponse(studySession, isCorrect, correctDefinition);
@@ -133,17 +114,12 @@ public class StudySessionServiceImpl implements StudySessionService {
             throw new InvalidDataException("You do not have permission to complete in this session");
         }
 
-        if (studySession.getCompletedAt() != null) {
-            throw new InvalidDataException("This study session has already been completed");
-        }
-
         Date now = new Date();
-        studySession.setCompletedAt(now);
+        studySession.complete(now);
         studySessionRepository.save(studySession);
 
-        long durationMs = now.getTime() - studySession.getStartedAt().getTime();
-        int totalAnswered = studySession.getTotalCorrect() + studySession.getTotalWrong();
-        double accuracyRate = totalAnswered > 0 ? (double) studySession.getTotalCorrect() / totalAnswered * 100 : 0.0;
+        long durationMs = studySession.calculateDurationMs();
+        double accuracyRate = studySession.calculateAccuracyRate();
 
         return this.studySessionMapper.toResultResponse(studySession, accuracyRate, durationMs);
     }
