@@ -30,15 +30,15 @@ public class StudySessionStatsCalculator {
 
     public double getAverageAccuracyRate(List<StudySession> sessions) {
         return sessions.stream()
-                .mapToDouble(this::calculateSessionAccuracyRate)
+                .mapToDouble(StudySession::calculateAccuracyRate)
                 .average()
                 .orElse(0.0);
     }
 
     public long getAverageDurationMs(List<StudySession> sessions) {
         return (long) sessions.stream()
-                .filter(session -> session.getStartedAt() != null && session.getCompletedAt() != null)
-                .mapToLong(session -> session.getCompletedAt().getTime() - session.getStartedAt().getTime())
+                .filter(session -> session.getStartedAt() != null && session.isCompleted())
+                .mapToLong(StudySession::calculateDurationMs)
                 .average()
                 .orElse(0.0);
     }
@@ -49,17 +49,5 @@ public class StudySessionStatsCalculator {
                 .filter(java.util.Objects::nonNull)
                 .max(Date::compareTo)
                 .orElse(null);
-    }
-
-    private double calculateSessionAccuracyRate(StudySession session) {
-        int totalCorrect = session.getTotalCorrect() == null ? 0 : session.getTotalCorrect();
-        int totalWrong = session.getTotalWrong() == null ? 0 : session.getTotalWrong();
-        int totalAnswered = totalCorrect + totalWrong;
-
-        if (totalAnswered == 0) {
-            return 0.0;
-        }
-
-        return (double) totalCorrect / totalAnswered * 100;
     }
 }
