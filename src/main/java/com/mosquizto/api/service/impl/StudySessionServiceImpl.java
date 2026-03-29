@@ -3,9 +3,9 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.AnswerRequest;
 import com.mosquizto.api.dto.request.StartStudySessionRequest;
 import com.mosquizto.api.dto.response.*;
-import com.mosquizto.api.dto.response.StudySessionDetailsResponse.StudySessionAnswerDetailResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.StudySessionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.StudySession;
@@ -15,8 +15,6 @@ import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.StudySessionDetailRepository;
 import com.mosquizto.api.repository.StudySessionRepository;
 import com.mosquizto.api.service.*;
-import com.mosquizto.api.util.TokenType;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,18 +30,19 @@ import java.util.List;
 @Service
 public class StudySessionServiceImpl implements StudySessionService {
 
-    private final AuthenticatedUserService authenticatedUserService;
+    private final CurrentUserProvider currentUserProvider;
     private final CollectionService collectionService;
     private final StudySessionRepository studySessionRepository;
     private final StudySessionDetailRepository studySessionDetailRepository;
     private final CollectionItemRepository collectionItemRepository;
-    private final JwtService jwtService;
-    private final UserService userService;
+    private final StudySessionMapper studySessionMapper;
+    private final StudySessionAuthorizationService studySessionAuthorizationService;
+    private final StudySessionStatsCalculator studySessionStatsCalculator;
 
     @Override
-    public Long startStudySession(StartStudySessionRequest startStudySession, HttpServletRequest request) {
+    public Long startStudySession(StartStudySessionRequest startStudySession) {
 
-        User user = this.authenticatedUserService.getAuthenticatedUser(request);
+        User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionService.getById(startStudySession.getCollectionId());
 
         StudySession studySession = StudySession.builder()
@@ -62,13 +61,13 @@ public class StudySessionServiceImpl implements StudySessionService {
 
     @Override
     @Transactional
-    public AnswerResultResponse answerItems(String token, Long sessionId, AnswerRequest answerRequest) {
-        String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
+    public AnswerResultResponse answerItems(Long sessionId, AnswerRequest answerRequest) {
+        String username = this.currentUserProvider.getCurrentUsername();
 
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.getUser().getUsername().equals(username)) {
+        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
             throw new InvalidDataException("You do not have permission to answer in this session");
         }
 
@@ -101,64 +100,37 @@ public class StudySessionServiceImpl implements StudySessionService {
         }
         studySessionRepository.save(studySession);
 
-        return AnswerResultResponse.builder()
-                .isCorrect(isCorrect)
-                .correctAnswer(correctDefinition)
-                .sessionId(sessionId)
-                .totalScore(studySession.getTotalScore())
-                .totalCorrect(studySession.getTotalCorrect())
-                .totalWrong(studySession.getTotalWrong())
-                .build();
+        return this.studySessionMapper.toAnswerResultResponse(studySession, isCorrect, correctDefinition);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public StudySessionDetailsResponse getSessionDetails(String token, Long sessionId) {
-        String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
+    public StudySessionDetailsResponse getSessionDetails(Long sessionId) {
+        String username = this.currentUserProvider.getCurrentUsername();
 
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.getUser().getUsername().equals(username)) {
-            throw new InvalidDataException("You do not have permission to view this session");
+        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
+            throw new InvalidDataException("You do not have permission to view in this session");
         }
 
-        List<StudySessionAnswerDetailResponse> details = studySessionDetailRepository
-                .findAllByStudySessionIdOrderByIdAsc(sessionId)
-                .stream()
-                .map(detail -> StudySessionAnswerDetailResponse.builder()
-                        .detailId(detail.getId())
-                        .collectionItemId(detail.getCollectionItem().getId())
-                        .term(detail.getCollectionItem().getTerm())
-                        .correctAnswer(detail.getCollectionItem().getDefinition())
-                        .isCorrect(detail.getIsCorrect())
-                        .responseTimeMs(detail.getResponseTimeMs())
-                        .build())
-                .toList();
+        List<StudySessionDetail> details = studySessionDetailRepository
+                .findAllByStudySessionIdOrderByIdAsc(sessionId);
 
-        return StudySessionDetailsResponse.builder()
-                .sessionId(studySession.getId())
-                .collectionId(studySession.getCollection().getId())
-                .collectionName(studySession.getCollection().getTitle())
-                .startedAt(studySession.getStartedAt())
-                .completedAt(studySession.getCompletedAt())
-                .totalScore(studySession.getTotalScore())
-                .totalCorrect(studySession.getTotalCorrect())
-                .totalWrong(studySession.getTotalWrong())
-                .details(details)
-                .build();
+        return this.studySessionMapper.toDetailsResponse(studySession, details);
     }
 
     @Override
     @Transactional
-    public StudySessionResultResponse completeStudySession(String token, Long sessionId) {
-        String username = jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
+    public StudySessionResultResponse completeStudySession(Long sessionId) {
+        String username = this.currentUserProvider.getCurrentUsername();
 
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.getUser().getUsername().equals(username)) {
-            throw new InvalidDataException("You do not have permission to complete this session");
+        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
+            throw new InvalidDataException("You do not have permission to complete in this session");
         }
 
         if (studySession.getCompletedAt() != null) {
@@ -173,19 +145,12 @@ public class StudySessionServiceImpl implements StudySessionService {
         int totalAnswered = studySession.getTotalCorrect() + studySession.getTotalWrong();
         double accuracyRate = totalAnswered > 0 ? (double) studySession.getTotalCorrect() / totalAnswered * 100 : 0.0;
 
-        return StudySessionResultResponse.builder()
-                .sessionId(sessionId)
-                .totalScore(studySession.getTotalScore())
-                .totalCorrect(studySession.getTotalCorrect())
-                .totalWrong(studySession.getTotalWrong())
-                .accuracyRate(accuracyRate)
-                .durationMs(durationMs)
-                .build();
+        return this.studySessionMapper.toResultResponse(studySession, accuracyRate, durationMs);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<StudySessionResponse> getHistoryStudy(String token, int page, int size) {
+    public PageResponse<StudySessionResponse> getHistoryStudy(int page, int size) {
         if (page < 1) {
             throw new InvalidDataException("Page must be greater than or equal to 1");
         }
@@ -194,25 +159,15 @@ public class StudySessionServiceImpl implements StudySessionService {
             throw new InvalidDataException("Size must be greater than or equal to 1");
         }
 
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-
-        User user = this.userService.getByUsername(username);
+        User user = this.currentUserProvider.getCurrentUser();
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "startedAt"));
 
         Page<StudySession> studySessionPage = this.studySessionRepository.findAllByUserId(user.getId(), pageable);
 
-        List<StudySessionResponse> studySessionResponses = studySessionPage.getContent().stream().map(
-                st -> StudySessionResponse.builder()
-                        .sessionId(st.getId())
-                        .collectionName(st.getCollection().getTitle())
-                        .totalScore(st.getTotalScore())
-                        .totalWrong(st.getTotalWrong())
-                        .totalCorrect(st.getTotalCorrect())
-                        .startedAt(st.getStartedAt())
-                        .completedAt(st.getCompletedAt())
-                        .build()
-                    ).toList();
+        List<StudySessionResponse> studySessionResponses = studySessionPage.getContent().stream()
+                .map(this.studySessionMapper::toResponse)
+                .toList();
 
         return PageResponse.<StudySessionResponse>builder()
                 .page(page)
@@ -225,63 +180,29 @@ public class StudySessionServiceImpl implements StudySessionService {
 
     @Override
     @Transactional(readOnly = true)
-    public StudySessionStatsResponse getStudySessionStats(String token, Integer collectionId) {
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = this.userService.getByUsername(username);
+    public StudySessionStatsResponse getStudySessionStats(Integer collectionId) {
+        User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionService.getById(collectionId);
 
         List<StudySession> sessions = this.studySessionRepository.findAllByUserIdAndCollectionId(user.getId(), collectionId);
 
-        int totalCorrect = sessions.stream()
-                .mapToInt(session -> session.getTotalCorrect() == null ? 0 : session.getTotalCorrect())
-                .sum();
-        int totalWrong = sessions.stream()
-                .mapToInt(session -> session.getTotalWrong() == null ? 0 : session.getTotalWrong())
-                .sum();
-        int bestScore = sessions.stream()
-                .mapToInt(session -> session.getTotalScore() == null ? 0 : session.getTotalScore())
-                .max()
-                .orElse(0);
+        int totalCorrect = this.studySessionStatsCalculator.getTotalCorect(sessions);
+        int totalWrong = this.studySessionStatsCalculator.getTotalWrong(sessions);
+        int bestScore = this.studySessionStatsCalculator.getBestScore(sessions);
+        double averageAccuracyRate = this.studySessionStatsCalculator.getAverageAccuracyRate(sessions);
+        long averageDurationMs = this.studySessionStatsCalculator.getAverageDurationMs(sessions);
+        Date lastStudiedAt = this.studySessionStatsCalculator.getLastStudiedAt(sessions);
 
-        double averageAccuracyRate = sessions.stream()
-                .mapToDouble(this::calculateSessionAccuracyRate)
-                .average()
-                .orElse(0.0);
-
-        long averageDurationMs = (long) sessions.stream()
-                .filter(session -> session.getStartedAt() != null && session.getCompletedAt() != null)
-                .mapToLong(session -> session.getCompletedAt().getTime() - session.getStartedAt().getTime())
-                .average()
-                .orElse(0.0);
-
-        Date lastStudiedAt = sessions.stream()
-                .map(StudySession::getStartedAt)
-                .filter(java.util.Objects::nonNull)
-                .max(Date::compareTo)
-                .orElse(null);
-
-        return StudySessionStatsResponse.builder()
-                .collectionId(collection.getId())
-                .collectionName(collection.getTitle())
-                .totalSessions((long) sessions.size())
-                .totalCorrect(totalCorrect)
-                .totalWrong(totalWrong)
-                .averageAccuracyRate(averageAccuracyRate)
-                .bestScore(bestScore)
-                .averageDurationMs(averageDurationMs)
-                .lastStudiedAt(lastStudiedAt)
-                .build();
+        return this.studySessionMapper.toStatsResponse(
+                collection,
+                sessions.size(),
+                totalCorrect,
+                totalWrong,
+                averageAccuracyRate,
+                bestScore,
+                averageDurationMs,
+                lastStudiedAt
+        );
     }
 
-    private double calculateSessionAccuracyRate(StudySession session) {
-        int totalCorrect = session.getTotalCorrect() == null ? 0 : session.getTotalCorrect();
-        int totalWrong = session.getTotalWrong() == null ? 0 : session.getTotalWrong();
-        int totalAnswered = totalCorrect + totalWrong;
-
-        if (totalAnswered == 0) {
-            return 0.0;
-        }
-
-        return (double) totalCorrect / totalAnswered * 100;
-    }
 }
