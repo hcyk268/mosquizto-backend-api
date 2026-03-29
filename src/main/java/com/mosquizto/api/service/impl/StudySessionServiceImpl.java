@@ -60,7 +60,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
+        if (!studySession.isOwnedBy(username)) {
             throw new InvalidDataException("You do not have permission to answer in this session");
         }
 
@@ -92,7 +92,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
+        if (!studySession.isOwnedBy(username)) {
             throw new InvalidDataException("You do not have permission to view in this session");
         }
 
@@ -110,7 +110,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!this.studySessionAuthorizationService.isAuthor(studySession, username)) {
+        if (!studySession.isOwnedBy(username)) {
             throw new InvalidDataException("You do not have permission to complete in this session");
         }
 
