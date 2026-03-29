@@ -36,7 +36,6 @@ public class StudySessionServiceImpl implements StudySessionService {
     private final StudySessionDetailRepository studySessionDetailRepository;
     private final CollectionItemRepository collectionItemRepository;
     private final StudySessionMapper studySessionMapper;
-    private final StudySessionAuthorizationService studySessionAuthorizationService;
     private final StudySessionStatsCalculator studySessionStatsCalculator;
 
     @Override
