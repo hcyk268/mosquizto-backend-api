@@ -7,9 +7,8 @@ import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
-import com.mosquizto.api.service.AuthenticatedUserService;
 import com.mosquizto.api.service.CollectionService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.mosquizto.api.service.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,12 +21,12 @@ import java.util.List;
 public class CollectionServiceImpl implements CollectionService {
 
     private final CollectionRepository collectionRepository;
-    private final AuthenticatedUserService authenticatedUserService ;
-    @Override
-    public Integer addCollection(CollectionRequest request, HttpServletRequest httpServletRequest) {
-        User user = authenticatedUserService.getAuthenticatedUser(httpServletRequest);
+    private final CurrentUserProvider currentUserProvider;
 
-        System.out.println(user.getId() + " " + user.getUsername());
+    @Override
+    public Integer addCollection(CollectionRequest request) {
+        User user = currentUserProvider.getCurrentUser();
+
         Collection collection = Collection.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -39,8 +38,8 @@ public class CollectionServiceImpl implements CollectionService {
     }
 
     @Override
-    public PageResponse<CollectionResponse> getMyCollections(int page, int size, HttpServletRequest request) {
-        User user = authenticatedUserService.getAuthenticatedUser(request);
+    public PageResponse<CollectionResponse> getMyCollections(int page, int size) {
+        User user = currentUserProvider.getCurrentUser();
 
         Page<Collection> collections = collectionRepository.findAllByCreatedById(user.getId(), PageRequest.of(page - 1, size));
         List<CollectionResponse> items = collections.getContent().stream()

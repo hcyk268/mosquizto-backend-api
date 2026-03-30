@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Getter
-@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -25,4 +24,16 @@ public class StudySessionDetail extends AbstractEntity<Long> {
 
     @Column(name = "response_time_ms")
     private Integer responseTimeMs;
+
+    public static StudySessionDetail create(StudySession studySession,
+                                            CollectionItem collectionItem,
+                                            boolean isCorrect,
+                                            Integer responseTimeMs) {
+        return StudySessionDetail.builder()
+                .studySession(studySession)
+                .collectionItem(collectionItem)
+                .isCorrect(isCorrect)
+                .responseTimeMs(responseTimeMs)
+                .build();
+    }
 }

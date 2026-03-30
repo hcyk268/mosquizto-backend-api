@@ -5,14 +5,16 @@ import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
-import com.mosquizto.api.service.*;
-import com.mosquizto.api.util.AuthorizationHeaderUtils;
+import com.mosquizto.api.service.AuthenticationService;
+import com.mosquizto.api.service.JwtService;
+import com.mosquizto.api.service.MailService;
+import com.mosquizto.api.service.TokenService;
+import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -58,12 +60,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public TokenResponse refreshToken(HttpServletRequest request) {
-        String refresh = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
-
+    public TokenResponse refreshToken(String refreshToken) {
         String username;
         try {
-            username = this.jwtService.extractUsername(refresh, TokenType.REFRESH_TOKEN);
+            username = this.jwtService.extractUsername(refreshToken, TokenType.REFRESH_TOKEN);
         } catch (ExpiredJwtException e) {
             log.error("Refresh token has expired: {}", e.getMessage());
             throw new InvalidTokenException("Refresh token has expired");
@@ -83,17 +83,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         var user = this.userService.getByUsername(username);
 
-        if (!jwtService.isValid(refresh, TokenType.REFRESH_TOKEN, user)) {
+        if (!jwtService.isValid(refreshToken, TokenType.REFRESH_TOKEN, user)) {
             throw new InvalidTokenException("Not allow access with this token");
         }
 
         String accessToken = this.jwtService.generateAccessToken(user);
 
-        this.tokenService.save(user.getUsername(), accessToken, refresh);
+        this.tokenService.save(user.getUsername(), accessToken, refreshToken);
 
         return TokenResponse.builder()
                 .userId(user.getId())
-                .refreshToken(refresh)
+                .refreshToken(refreshToken)
                 .accessToken(accessToken)
                 .build();
     }
@@ -122,9 +122,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
 
     @Override
-    public String logout(HttpServletRequest request) {
-        String accessToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
-
+    public String logout(String accessToken) {
         String username;
         try {
             username = this.jwtService.extractUsername(accessToken, TokenType.ACCESS_TOKEN);

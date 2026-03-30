@@ -6,17 +6,15 @@ import com.mosquizto.api.dto.request.SignUpRequest;
 import com.mosquizto.api.dto.request.VerifyCodeRequest;
 import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.TokenResponse;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
 
 public interface AuthenticationService {
     TokenResponse authenticate(SignInRequest signIndata);
 
-    TokenResponse refreshToken(HttpServletRequest request);
+    TokenResponse refreshToken(String refreshToken);
 
     String createAccount(SignUpRequest signUpRequest);
 
-    String logout(HttpServletRequest request);
+    String logout(String accessToken);
 
     void forgotPassword(String email);
 

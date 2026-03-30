@@ -11,12 +11,9 @@ import com.mosquizto.api.model.Role;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
-import com.mosquizto.api.service.JwtService;
+import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserService;
-import com.mosquizto.api.util.AuthorizationHeaderUtils;
-import com.mosquizto.api.util.TokenType;
 import com.mosquizto.api.util.UserStatus;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,7 +30,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final CurrentUserProvider currentUserProvider;
 
     @Override
     public User getByUsername(String username) {
@@ -134,15 +131,11 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changePassword(ChangePasswordRequest changePasswordRequest, HttpServletRequest request) {
+    public void changePassword(ChangePasswordRequest changePasswordRequest) {
         if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword()))
             throw new InvalidDataException("New password must be different from old password");
 
-        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
-
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-
-        var user = this.getByUsername(username);
+        User user = this.currentUserProvider.getCurrentUser();
 
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
             throw new InvalidDataException("Old password wrong");
@@ -154,10 +147,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserResponse getProfile(HttpServletRequest request) {
-        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = this.getByUsername(username);
+    public UserResponse getProfile() {
+        User user = this.currentUserProvider.getCurrentUser();
 
         return UserResponse.builder()
                 .id(user.getId())
@@ -172,10 +163,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request) {
-        String token = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = this.getByUsername(username);
+    public void updateUser(UpdateUserRequest updateUserRequest) {
+        User user = this.currentUserProvider.getCurrentUser();
 
         user.setFullName(updateUserRequest.getFullName());
 

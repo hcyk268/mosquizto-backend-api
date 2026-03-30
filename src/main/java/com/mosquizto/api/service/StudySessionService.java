@@ -3,19 +3,18 @@ package com.mosquizto.api.service;
 import com.mosquizto.api.dto.request.AnswerRequest;
 import com.mosquizto.api.dto.request.StartStudySessionRequest;
 import com.mosquizto.api.dto.response.*;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
 public interface StudySessionService {
-    Long startStudySession(StartStudySessionRequest startStudySession, HttpServletRequest request);
+    Long startStudySession(StartStudySessionRequest startStudySession);
 
-    AnswerResultResponse answerItems(String token, Long sessionId, @Valid AnswerRequest answerRequest);
+    AnswerResultResponse answerItems(Long sessionId, @Valid AnswerRequest answerRequest);
 
-    StudySessionDetailsResponse getSessionDetails(String token, Long sessionId);
+    StudySessionDetailsResponse getSessionDetails(Long sessionId);
 
-    StudySessionResultResponse completeStudySession(String token, Long sessionId);
+    StudySessionResultResponse completeStudySession(Long sessionId);
 
-    PageResponse<StudySessionResponse> getHistoryStudy(String token, int page, int size);
+    PageResponse<StudySessionResponse> getHistoryStudy(int page, int size);
 
-    StudySessionStatsResponse getStudySessionStats(String token, Integer collectionId);
+    StudySessionStatsResponse getStudySessionStats(Integer collectionId);
 }

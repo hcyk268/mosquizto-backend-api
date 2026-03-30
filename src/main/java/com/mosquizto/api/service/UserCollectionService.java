@@ -7,11 +7,11 @@ import jakarta.validation.Valid;
 import java.util.List;
 
 public interface UserCollectionService {
-    void shareCollection(String token, Integer collectionId, @Valid ShareCollectionRequest shareCollectionRequest);
+    void shareCollection(Integer collectionId, @Valid ShareCollectionRequest shareCollectionRequest);
 
-    List<MemberResponse> getAllMembersCollection(String token, Integer collectionId);
+    List<MemberResponse> getAllMembersCollection(Integer collectionId);
 
-    void joinCollection(String token, Integer collectionId);
+    void joinCollection(Integer collectionId);
 
-    void deleteCollectionMember(String token, Integer collectionId, Long userId);
+    void deleteCollectionMember(Integer collectionId, Long userId);
 }

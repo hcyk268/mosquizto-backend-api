@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
@@ -341,9 +340,8 @@ public class UserController {
     })
     @PatchMapping("/change-password")
     public ResponseData<String> changePassword(
-            @Valid @RequestBody ChangePasswordRequest changePasswordRequest,
-            HttpServletRequest request) {
-        this.userService.changePassword(changePasswordRequest, request);
+            @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
+        this.userService.changePassword(changePasswordRequest);
         return new ResponseData<>(HttpStatus.NO_CONTENT.value(), "Success");
     }
 
@@ -395,8 +393,8 @@ public class UserController {
             )
     })
     @GetMapping("/profile")
-    public ResponseData<UserResponse> getProfile(HttpServletRequest request) {
-        UserResponse profile = this.userService.getProfile(request);
+    public ResponseData<UserResponse> getProfile() {
+        UserResponse profile = this.userService.getProfile();
         return new ResponseData<>(HttpStatus.OK.value(), "Get profile success", profile);
     }
 
@@ -455,9 +453,8 @@ public class UserController {
     })
     @PatchMapping("/update")
     public ResponseData<String> updateUser(
-            @Valid @RequestBody UpdateUserRequest updateUserRequest,
-            HttpServletRequest request) {
-        this.userService.updateUser(updateUserRequest, request);
+            @Valid @RequestBody UpdateUserRequest updateUserRequest) {
+        this.userService.updateUser(updateUserRequest);
         return new ResponseData<>(HttpStatus.OK.value(), "Update user success");
     }
 }

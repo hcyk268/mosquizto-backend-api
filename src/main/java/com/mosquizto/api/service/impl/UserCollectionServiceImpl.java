@@ -10,11 +10,10 @@ import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
-import com.mosquizto.api.service.JwtService;
+import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.CollectionRole;
-import com.mosquizto.api.util.TokenType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,14 +26,14 @@ import java.util.List;
 @Service
 public class UserCollectionServiceImpl implements UserCollectionService {
 
-    private final JwtService jwtService;
+    private final CurrentUserProvider currentUserProvider;
     private final UserService userService;
     private final CollectionRepository collectionRepository;
     private final UserCollectionRepository userCollectionRepository;
 
     @Override
-    public void shareCollection(String token, Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
-        String usernameOwner = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
+    public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
+        String usernameOwner = this.currentUserProvider.getCurrentUsername();
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
@@ -68,9 +67,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     }
 
     @Override
-    public List<MemberResponse> getAllMembersCollection(String token, Integer collectionId) {
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User currentUser = this.userService.getByUsername(username);
+    public List<MemberResponse> getAllMembersCollection(Integer collectionId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
 
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
@@ -107,9 +105,9 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     }
 
     @Override
-    public void joinCollection(String token, Integer collectionId) {
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
-        User user = this.userService.getByUsername(username);
+    public void joinCollection(Integer collectionId) {
+        User user = this.currentUserProvider.getCurrentUser();
+        String username = user.getUsername();
 
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
@@ -143,8 +141,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
 
     @Override
     @Transactional
-    public void deleteCollectionMember(String token, Integer collectionId, Long userId) {
-        String username = this.jwtService.extractUsername(token, TokenType.ACCESS_TOKEN);
+    public void deleteCollectionMember(Integer collectionId, Long userId) {
+        String username = this.currentUserProvider.getCurrentUsername();
 
         User user = this.userService.getById(userId);
 
