@@ -6,7 +6,6 @@ import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
 import com.mosquizto.api.model.User;
-import jakarta.servlet.http.HttpServletRequest;
 
 public interface UserService {
 
@@ -28,11 +27,11 @@ public interface UserService {
 
     PageResponse<UserResponse> getListUser(int page, int size);
 
-    void changePassword(ChangePasswordRequest changePasswordRequest, HttpServletRequest request);
+    void changePassword(ChangePasswordRequest changePasswordRequest);
 
-    UserResponse getProfile(HttpServletRequest request);
+    UserResponse getProfile();
 
-    void updateUser(UpdateUserRequest updateUserRequest, HttpServletRequest request);
+    void updateUser(UpdateUserRequest updateUserRequest);
 
     User getById(Long userId);
 }

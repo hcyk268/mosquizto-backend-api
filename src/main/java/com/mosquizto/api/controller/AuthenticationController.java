@@ -8,6 +8,7 @@ import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.service.AuthenticationService;
+import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -244,7 +245,8 @@ public class AuthenticationController {
     })
     @PostMapping("/refresh-token")
     public ResponseData<TokenResponse> refresh(HttpServletRequest request) {
-        return new ResponseData<>(HttpStatus.OK.value(), "Token refreshed successfully", this.authenticationService.refreshToken(request));
+        String refreshToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
+        return new ResponseData<>(HttpStatus.OK.value(), "Token refreshed successfully", this.authenticationService.refreshToken(refreshToken));
     }
 
     // ─────────────────────────────────────────────────────────────── LOGOUT ──
@@ -288,7 +290,8 @@ public class AuthenticationController {
     })
     @PostMapping("/logout")
     public ResponseData<String> logout(HttpServletRequest request) {
-        return new ResponseData<>(HttpStatus.OK.value(), "Logout successfully", this.authenticationService.logout(request));
+        String accessToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
+        return new ResponseData<>(HttpStatus.OK.value(), "Logout successfully", this.authenticationService.logout(accessToken));
     }
 
     // ───────────────────────────────────────────────────── FORGOT PASSWORD ──

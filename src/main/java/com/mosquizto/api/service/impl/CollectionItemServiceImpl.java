@@ -6,11 +6,11 @@ import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
+import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
-import com.mosquizto.api.service.AuthenticatedUserService;
 import com.mosquizto.api.service.CollectionItemService;
-import jakarta.servlet.http.HttpServletRequest;
+import com.mosquizto.api.service.CurrentUserProvider;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -21,12 +21,13 @@ import java.util.List;
 @AllArgsConstructor
 public class CollectionItemServiceImpl implements CollectionItemService {
     private final CollectionItemRepository collectionItemRepository;
-    private final CollectionRepository collectionRepository ;
-    private final AuthenticatedUserService authenticatedUserService ;
+    private final CollectionRepository collectionRepository;
+    private final CurrentUserProvider currentUserProvider;
+
     @Override
-    public CollectionItemResponse addNewItem(CollectionItemRequest request, HttpServletRequest httpServletRequest) {
+    public CollectionItemResponse addNewItem(CollectionItemRequest request) {
         var collection = findCollectionById(request.getCollectionId());
-        if (!authenticatedUserService.isAuthorOfCollection(httpServletRequest, collection)) {
+        if (!isCurrentUserAuthorOf(collection)) {
             throw new InvalidDataException("You do not have permission to add items to this collection");
         }
 
@@ -37,27 +38,23 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     }
 
     @Override
-    public List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId,HttpServletRequest httpServletRequest) {
+    public List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId) {
         var collection = findCollectionById(collectionId);
-        if(collection.getVisibility().equals(false) &&
-                !authenticatedUserService.isAuthorOfCollection(httpServletRequest, collection))
-        {
+        if (collection.getVisibility().equals(false)
+                && !isCurrentUserAuthorOf(collection)) {
             throw new InvalidDataException("You do not have permission to see this collection");
         }
         var response = new ArrayList<CollectionItemResponse>();
         var items = collectionItemRepository.findByCollectionId(collectionId);
-        items.forEach( item ->
-        {
-            response.add(CollectionItemResponse.createResponseBy(item));
-        });
-        return response ;
+        items.forEach(item -> response.add(CollectionItemResponse.createResponseBy(item)));
+        return response;
     }
 
     @Override
-    public CollectionItemResponse deleteCollectionItem(Integer id, HttpServletRequest httpServletRequest) {
+    public CollectionItemResponse deleteCollectionItem(Integer id) {
         CollectionItem targetItem = getItemById(id);
         Collection collection = targetItem.getCollection();
-        if (!authenticatedUserService.isAuthorOfCollection(httpServletRequest, collection)) {
+        if (!isCurrentUserAuthorOf(collection)) {
             throw new InvalidDataException("You do not have permission to delete this item");
         }
 
@@ -66,29 +63,33 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     }
 
     @Override
-    public CollectionItemResponse updateCollectionItem(Integer id ,CollectionItemRequest request,HttpServletRequest httpServletRequest) {
-        var collection = findCollectionById(request.getCollectionId()) ;
-        if (!authenticatedUserService.isAuthorOfCollection(httpServletRequest,collection))
-        {
+    public CollectionItemResponse updateCollectionItem(Integer id, CollectionItemRequest request) {
+        var collection = findCollectionById(request.getCollectionId());
+        if (!isCurrentUserAuthorOf(collection)) {
             throw new InvalidDataException("You do not have permission to add items to this collection");
         }
-        var targetItem = getItemById(id) ;
-//        targetItem.setCollection(collection); Không cho phép đổi collection
+        var targetItem = getItemById(id);
         targetItem.setTerm(request.getTerm());
         targetItem.setDefinition(request.getDefinition());
         targetItem.setOrderIndex(request.getOrderIndex());
         targetItem.setImageUrl(request.getImageUrl());
-        return CollectionItemResponse.createResponseBy(collectionItemRepository.save(targetItem) );
+        return CollectionItemResponse.createResponseBy(collectionItemRepository.save(targetItem));
     }
 
-    // Support method;
-    private Collection findCollectionById(Integer collectionId)
-    {
+    private Collection findCollectionById(Integer collectionId) {
         return collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
     }
+
     private CollectionItem getItemById(Integer id) {
         return collectionItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
+    }
+
+    private boolean isCurrentUserAuthorOf(Collection collection) {
+        User currentUser = currentUserProvider.getCurrentUser();
+        return collection.getCreatedBy() != null
+                && collection.getCreatedBy().getId() != null
+                && collection.getCreatedBy().getId().equals(currentUser.getId());
     }
 }
