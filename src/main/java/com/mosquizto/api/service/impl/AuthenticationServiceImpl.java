@@ -5,6 +5,7 @@ import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
+import com.mosquizto.api.mapper.AuthenticationMapper;
 import com.mosquizto.api.service.AuthenticationService;
 import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.service.MailService;
@@ -36,6 +37,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final TokenService tokenService;
     private final MailService mailService;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationMapper authenticationMapper;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom random = new SecureRandom();
 
@@ -52,11 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         this.tokenService.save(user.getUsername(), accessToken, refreshToken);
 
-        return TokenResponse.builder()
-                .userId(user.getId())
-                .accessToken(accessToken)
-                .refreshToken(refreshToken)
-                .build();
+        return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
 
     @Override
@@ -91,11 +89,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         this.tokenService.save(user.getUsername(), accessToken, refreshToken);
 
-        return TokenResponse.builder()
-                .userId(user.getId())
-                .refreshToken(refreshToken)
-                .accessToken(accessToken)
-                .build();
+        return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
 
     @Override
@@ -103,13 +97,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!signUpRequest.getPassword().equals(signUpRequest.getConfirmPassword()))
             throw new InvalidDataException("Password not match");
 
-        AddUserRequest user = AddUserRequest.builder()
-                .fullName(signUpRequest.getFullName())
-                .username(signUpRequest.getUsername())
-                .email(signUpRequest.getEmail())
-                .password(signUpRequest.getPassword())
-                .role("USER")
-                .build();
+        AddUserRequest user = this.authenticationMapper.toAddUserRequest(signUpRequest);
 
         long userId = this.userService.addUser(user);
 
@@ -156,10 +144,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String resetToken = this.jwtService.generateResetToken(user);
 
-        return ResetPasswordTokenResponse.builder()
-                .secretKey(resetToken)
-                .email(verifyCodeRequest.getEmail())
-                .build();
+        return this.authenticationMapper.toResetPasswordTokenResponse(verifyCodeRequest.getEmail(), resetToken);
     }
 
     @Override

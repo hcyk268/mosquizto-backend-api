@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
@@ -22,28 +23,23 @@ public class CollectionServiceImpl implements CollectionService {
 
     private final CollectionRepository collectionRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final CollectionMapper collectionMapper;
 
     @Override
     public Integer addCollection(CollectionRequest request) {
-        User user = currentUserProvider.getCurrentUser();
+        User user = this.currentUserProvider.getCurrentUser();
+        Collection collection = this.collectionMapper.toEntity(request, user);
 
-        Collection collection = Collection.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .visibility(request.getVisibility())
-                .createdBy(user)
-                .build();
-
-        return collectionRepository.save(collection).getId();
+        return this.collectionRepository.save(collection).getId();
     }
 
     @Override
     public PageResponse<CollectionResponse> getMyCollections(int page, int size) {
-        User user = currentUserProvider.getCurrentUser();
+        User user = this.currentUserProvider.getCurrentUser();
 
-        Page<Collection> collections = collectionRepository.findAllByCreatedById(user.getId(), PageRequest.of(page - 1, size));
+        Page<Collection> collections = this.collectionRepository.findAllByCreatedById(user.getId(), PageRequest.of(page - 1, size));
         List<CollectionResponse> items = collections.getContent().stream()
-                .map(this::mapToResponse)
+                .map(this.collectionMapper::toResponse)
                 .toList();
 
         return PageResponse.<CollectionResponse>builder()
@@ -57,24 +53,22 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     public CollectionResponse getDetail(Integer id) {
-        Collection collection = collectionRepository.findById(id)
+        Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
-        return mapToResponse(collection);
+        return this.collectionMapper.toResponse(collection);
     }
 
     @Override
     public void updateCollection(Integer id, CollectionRequest request) {
-        Collection collection = collectionRepository.findById(id)
+        Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
-        collection.setTitle(request.getTitle());
-        collection.setDescription(request.getDescription());
-        collection.setVisibility(request.getVisibility());
-        collectionRepository.save(collection);
+        this.collectionMapper.updateEntity(collection, request);
+        this.collectionRepository.save(collection);
     }
 
     @Override
     public void deleteCollection(Integer id) {
-        collectionRepository.deleteById(id);
+        this.collectionRepository.deleteById(id);
     }
 
     @Override
@@ -86,17 +80,5 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     public Collection save(Collection collection) {
         return this.collectionRepository.save(collection);
-    }
-
-    private CollectionResponse mapToResponse(Collection collection) {
-        return CollectionResponse.builder()
-                .id(collection.getId())
-                .title(collection.getTitle())
-                .description(collection.getDescription())
-                .visibility(collection.getVisibility())
-                .userId(collection.getCreatedBy().getId())
-                .createdAt(collection.getCreatedAt())
-                .updatedAt(collection.getUpdatedAt())
-                .build();
     }
 }

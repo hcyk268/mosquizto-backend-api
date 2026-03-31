@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.MemberResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.UserCollectionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
@@ -30,6 +31,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     private final UserService userService;
     private final CollectionRepository collectionRepository;
     private final UserCollectionRepository userCollectionRepository;
+    private final UserCollectionMapper userCollectionMapper;
 
     @Override
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
@@ -87,19 +89,11 @@ public class UserCollectionServiceImpl implements UserCollectionService {
 
         LinkedHashMap<Long, MemberResponse> members = new LinkedHashMap<>();
 
-        members.put(collection.getCreatedBy().getId(), MemberResponse.builder()
-                .username(collection.getCreatedBy().getUsername())
-                .fullname(collection.getCreatedBy().getFullName())
-                .role(CollectionRole.OWNER)
-                .build());
+        members.put(collection.getCreatedBy().getId(), this.userCollectionMapper.toOwnerMemberResponse(collection.getCreatedBy()));
 
         this.userCollectionRepository.findAllMembersByCollectionId(collectionId)
                 .forEach(userCollection -> members.putIfAbsent(
-                        userCollection.getUser().getId(), MemberResponse.builder()
-                            .username(userCollection.getUser().getUsername())
-                            .fullname(userCollection.getUser().getFullName())
-                            .role(userCollection.getRole())
-                            .build()));
+                        userCollection.getUser().getId(), this.userCollectionMapper.toMemberResponse(userCollection)));
 
         return new ArrayList<>(members.values());
     }
