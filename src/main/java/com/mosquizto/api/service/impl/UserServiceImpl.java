@@ -7,6 +7,7 @@ import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.UserMapper;
 import com.mosquizto.api.model.Role;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.RoleRepository;
@@ -31,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserProvider currentUserProvider;
+    private final UserMapper userMapper;
 
     @Override
     public User getByUsername(String username) {
@@ -109,16 +111,7 @@ public class UserServiceImpl implements UserService {
         Page<User> userPage = this.userRepository.findAll(PageRequest.of(page - 1, size));
 
         List<UserResponse> items = userPage.getContent().stream()
-                .map(user -> UserResponse.builder()
-                        .id(user.getId())
-                        .fullName(user.getFullName())
-                        .email(user.getEmail())
-                        .username(user.getUsername())
-                        .status(user.getStatus())
-                        .role(user.getRole() != null ? user.getRole().getName() : null)
-                        .createdAt(user.getCreatedAt())
-                        .updatedAt(user.getUpdatedAt())
-                        .build())
+                .map(userMapper::toResponse)
                 .toList();
 
         return PageResponse.<UserResponse>builder()
@@ -150,16 +143,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getProfile() {
         User user = this.currentUserProvider.getCurrentUser();
 
-        return UserResponse.builder()
-                .id(user.getId())
-                .fullName(user.getFullName())
-                .email(user.getEmail())
-                .username(user.getUsername())
-                .status(user.getStatus())
-                .role(user.getRole() != null ? user.getRole().getName() : null)
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        return this.userMapper.toResponse(user);
     }
 
     @Override

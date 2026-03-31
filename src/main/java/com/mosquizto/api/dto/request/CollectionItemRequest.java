@@ -1,8 +1,6 @@
 package com.mosquizto.api.dto.request;
 
-import com.mosquizto.api.model.CollectionItem;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Builder;
 import lombok.Data;
@@ -25,11 +23,4 @@ public class CollectionItemRequest implements Serializable {
 
     @NotNull(message = "Collection ID is required")
     private Integer collectionId;
-
-    public static CollectionItem mapToCollectionItem(CollectionItemRequest request)
-    {
-        return CollectionItem.builder().
-                term(request.term).definition(request.definition).
-                imageUrl(request.imageUrl).orderIndex(request.orderIndex).build();
-    }
 }

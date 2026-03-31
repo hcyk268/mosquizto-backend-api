@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.request.CollectionItemRequest;
 import com.mosquizto.api.dto.response.CollectionItemResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.CollectionItemMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.User;
@@ -14,7 +15,6 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -23,6 +23,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private final CollectionItemRepository collectionItemRepository;
     private final CollectionRepository collectionRepository;
     private final CurrentUserProvider currentUserProvider;
+    private final CollectionItemMapper collectionItemMapper;
 
     @Override
     public CollectionItemResponse addNewItem(CollectionItemRequest request) {
@@ -31,10 +32,9 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw new InvalidDataException("You do not have permission to add items to this collection");
         }
 
-        CollectionItem newItem = CollectionItemRequest.mapToCollectionItem(request);
-        newItem.setCollection(collection);
+        CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
 
-        return CollectionItemResponse.createResponseBy(collectionItemRepository.save(newItem));
+        return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(newItem));
     }
 
     @Override
@@ -44,10 +44,10 @@ public class CollectionItemServiceImpl implements CollectionItemService {
                 && !isCurrentUserAuthorOf(collection)) {
             throw new InvalidDataException("You do not have permission to see this collection");
         }
-        var response = new ArrayList<CollectionItemResponse>();
-        var items = collectionItemRepository.findByCollectionId(collectionId);
-        items.forEach(item -> response.add(CollectionItemResponse.createResponseBy(item)));
-        return response;
+        var items = this.collectionItemRepository.findByCollectionId(collectionId);
+        return items.stream()
+                .map(this.collectionItemMapper::toResponse)
+                .toList();
     }
 
     @Override
@@ -58,8 +58,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw new InvalidDataException("You do not have permission to delete this item");
         }
 
-        collectionItemRepository.delete(targetItem);
-        return CollectionItemResponse.createResponseBy(targetItem);
+        this.collectionItemRepository.delete(targetItem);
+        return this.collectionItemMapper.toResponse(targetItem);
     }
 
     @Override
@@ -69,11 +69,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw new InvalidDataException("You do not have permission to add items to this collection");
         }
         var targetItem = getItemById(id);
-        targetItem.setTerm(request.getTerm());
-        targetItem.setDefinition(request.getDefinition());
-        targetItem.setOrderIndex(request.getOrderIndex());
-        targetItem.setImageUrl(request.getImageUrl());
-        return CollectionItemResponse.createResponseBy(collectionItemRepository.save(targetItem));
+        this.collectionItemMapper.updateEntity(targetItem, request);
+        return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(targetItem));
     }
 
     private Collection findCollectionById(Integer collectionId) {
