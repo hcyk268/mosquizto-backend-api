@@ -7,7 +7,7 @@ import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
 import com.mosquizto.api.mapper.AuthenticationMapper;
 import com.mosquizto.api.service.AuthenticationService;
-import com.mosquizto.api.service.JwtService;
+import com.mosquizto.api.security.JwtService;
 import com.mosquizto.api.service.MailService;
 import com.mosquizto.api.service.TokenService;
 import com.mosquizto.api.service.UserService;

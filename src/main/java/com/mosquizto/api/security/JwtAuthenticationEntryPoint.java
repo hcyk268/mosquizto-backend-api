@@ -1,4 +1,4 @@
-package com.mosquizto.api.configuration;
+package com.mosquizto.api.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mosquizto.api.dto.response.ErrorResponseException;
