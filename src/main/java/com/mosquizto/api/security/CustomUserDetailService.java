@@ -1,4 +1,4 @@
-package com.mosquizto.api.service;
+package com.mosquizto.api.security;
 
 import com.mosquizto.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
