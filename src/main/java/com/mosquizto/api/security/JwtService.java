@@ -1,7 +1,5 @@
-package com.mosquizto.api.service.impl;
+package com.mosquizto.api.security;
 
-import com.mosquizto.api.exception.InvalidDataException;
-import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.service.TokenService;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.Claims;
@@ -14,14 +12,13 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
-import java.security.Key;
 import java.util.Date;
 
 import static com.mosquizto.api.util.TokenType.*;
 
 @RequiredArgsConstructor
 @Service
-public class JwtServiceImpl implements JwtService {
+public class JwtService {
 
     @Value("${jwt.accessKey}")
     private String accessKey;
@@ -40,7 +37,6 @@ public class JwtServiceImpl implements JwtService {
 
     private final TokenService tokenService;
 
-    @Override
     public String generateAccessToken(UserDetails user) {
         return Jwts.builder()
                 .subject(user.getUsername())
@@ -51,7 +47,6 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
-    @Override
     public String generateRefreshToken(UserDetails user) {
         return Jwts.builder()
                 .subject(user.getUsername())
@@ -61,7 +56,6 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
-    @Override
     public String generateResetToken(UserDetails user) {
         return Jwts.builder()
                 .subject(user.getUsername())
@@ -71,12 +65,10 @@ public class JwtServiceImpl implements JwtService {
                 .compact();
     }
 
-    @Override
     public String extractUsername(String token, TokenType type) {
         return extractClaims(token, type).getSubject();
     }
 
-    @Override
     public boolean isValid(String token, TokenType type, UserDetails user) {
         Claims claims = extractClaims(token, type);
         boolean base = claims.getSubject().equals(user.getUsername())
@@ -91,7 +83,6 @@ public class JwtServiceImpl implements JwtService {
             case REFRESH_TOKEN -> Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshKey));
             case ACCESS_TOKEN -> Keys.hmacShaKeyFor(Decoders.BASE64.decode(accessKey));
             case RESET_TOKEN -> Keys.hmacShaKeyFor(Decoders.BASE64.decode(resetKey));
-            default -> throw new InvalidDataException("Not found Token Type");
         };
     }
 
