@@ -10,8 +10,11 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import java.awt.print.Pageable;
 
 @RestController
 @RequestMapping("/collection")
@@ -53,5 +56,13 @@ public class CollectionController {
     public ResponseData<Void> delete(@PathVariable Integer id) {
         collectionService.deleteCollection(id);
         return new ResponseData<>(HttpStatus.OK.value(), "Delete success");
+    }
+    @GetMapping("/public")
+    public ResponseData<PageResponse<CollectionResponse>> getAllPublicCollection(
+            @RequestParam(defaultValue = "1" , name = "page") int page,
+            @RequestParam(defaultValue = "10" , name = "size") int size)
+    {
+        PageResponse<CollectionResponse> response = collectionService.getAllPublicCollection(page,size);
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
     }
 }

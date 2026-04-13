@@ -10,8 +10,10 @@ import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
+import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionItemService;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -20,16 +22,20 @@ import java.util.List;
 @Service
 @AllArgsConstructor
 public class CollectionItemServiceImpl implements CollectionItemService {
+
     private final CollectionItemRepository collectionItemRepository;
     private final CollectionRepository collectionRepository;
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemMapper collectionItemMapper;
+    private final UserCollectionRepository userCollectionRepository;
 
     @Override
     public CollectionItemResponse addNewItem(CollectionItemRequest request) {
         var collection = findCollectionById(request.getCollectionId());
-        if (!isCurrentUserAuthorOf(collection)) {
-            throw new InvalidDataException("You do not have permission to add items to this collection");
+
+        CollectionRole role = getUserRoleInCollection(collection.getId());
+        if (role == null || role == CollectionRole.VIEWER) {
+            throw new InvalidDataException("Only editor and owner can add items to this collection");
         }
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
@@ -40,10 +46,12 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     @Override
     public List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId) {
         var collection = findCollectionById(collectionId);
-        if (collection.getVisibility().equals(false)
-                && !isCurrentUserAuthorOf(collection)) {
+        CollectionRole role = getUserRoleInCollection(collectionId);
+
+        if (Boolean.FALSE.equals(collection.getVisibility()) && role == null) {
             throw new InvalidDataException("You do not have permission to see this collection");
         }
+
         var items = this.collectionItemRepository.findByCollectionId(collectionId);
         return items.stream()
                 .map(this.collectionItemMapper::toResponse)
@@ -54,8 +62,10 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     public CollectionItemResponse deleteCollectionItem(Integer id) {
         CollectionItem targetItem = getItemById(id);
         Collection collection = targetItem.getCollection();
-        if (!isCurrentUserAuthorOf(collection)) {
-            throw new InvalidDataException("You do not have permission to delete this item");
+
+        CollectionRole role = getUserRoleInCollection(collection.getId());
+        if (role == null || role == CollectionRole.VIEWER) {
+            throw new InvalidDataException("Only editor and owner can delete items in this collection");
         }
 
         this.collectionItemRepository.delete(targetItem);
@@ -65,9 +75,12 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     @Override
     public CollectionItemResponse updateCollectionItem(Integer id, CollectionItemRequest request) {
         var collection = findCollectionById(request.getCollectionId());
-        if (!isCurrentUserAuthorOf(collection)) {
-            throw new InvalidDataException("You do not have permission to add items to this collection");
+
+        CollectionRole role = getUserRoleInCollection(collection.getId());
+        if (role == null || role == CollectionRole.VIEWER) {
+            throw new InvalidDataException("Only editor and owner can edit items in this collection");
         }
+
         var targetItem = getItemById(id);
         this.collectionItemMapper.updateEntity(targetItem, request);
         return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(targetItem));
@@ -83,10 +96,12 @@ public class CollectionItemServiceImpl implements CollectionItemService {
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
     }
 
-    private boolean isCurrentUserAuthorOf(Collection collection) {
+    /**
+     * Hàm lấy quyền (Role) của User hiện tại đối với một Collection
+     */
+    private CollectionRole getUserRoleInCollection(Integer collectionId) {
         User currentUser = currentUserProvider.getCurrentUser();
-        return collection.getCreatedBy() != null
-                && collection.getCreatedBy().getId() != null
-                && collection.getCreatedBy().getId().equals(currentUser.getId());
+        return userCollectionRepository.getRoleInUserCollection(currentUser.getId(), collectionId)
+                .orElse(null); // Trả về null nếu user không thuộc collection này
     }
 }

@@ -31,7 +31,7 @@ $$;
 -- ----------------------------
 CREATE TABLE IF NOT EXISTS tbl_user_collection (
     user_id       BIGINT          NOT NULL REFERENCES tbl_user(id),
-    collection_id INTEGER         NOT NULL REFERENCES tbl_collection(id),
+        collection_id INTEGER         NOT NULL REFERENCES tbl_collection(id),
     role          collection_role NOT NULL DEFAULT 'VIEWER',
     created_at    TIMESTAMP WITHOUT TIME ZONE,
     updated_at    TIMESTAMP WITHOUT TIME ZONE,
@@ -53,7 +53,6 @@ CREATE TABLE IF NOT EXISTS tbl_user_collection_item_progress (
     updated_at         TIMESTAMP WITHOUT TIME ZONE,
     PRIMARY KEY (user_id, collection_item_id)
 );
-
 -- ----------------------------
 -- INDEX
 -- ----------------------------
