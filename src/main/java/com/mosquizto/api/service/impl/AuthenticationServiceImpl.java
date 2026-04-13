@@ -6,11 +6,9 @@ import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
 import com.mosquizto.api.mapper.AuthenticationMapper;
-import com.mosquizto.api.service.AuthenticationService;
+import com.mosquizto.api.model.RedisToken;
+import com.mosquizto.api.service.*;
 import com.mosquizto.api.security.JwtService;
-import com.mosquizto.api.service.MailService;
-import com.mosquizto.api.service.TokenService;
-import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
@@ -18,6 +16,7 @@ import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -34,12 +33,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final JwtService jwtService;
-    private final TokenService tokenService;
+    private final RedisTokenService redisTokenService;
     private final MailService mailService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationMapper authenticationMapper;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final SecureRandom random = new SecureRandom();
+
+    @Value("${jwt.expiryDay}")
+    private int expiryDay;
 
     @Override
     public TokenResponse authenticate(SignInRequest signIndata) {
@@ -52,10 +54,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String accessToken = this.jwtService.generateAccessToken(user);
         String refreshToken = this.jwtService.generateRefreshToken(user);
 
-        this.tokenService.save(user.getUsername(), accessToken, refreshToken);
+        long ttlSeconds = (long) expiryDay * 24 * 60 * 60;
+        RedisToken redisToken = RedisToken.initiate(user.getUsername(), accessToken, refreshToken, ttlSeconds);
+        this.redisTokenService.save(redisToken);
 
         return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
+
 
     @Override
     public TokenResponse refreshToken(String refreshToken) {
@@ -87,7 +92,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String accessToken = this.jwtService.generateAccessToken(user);
 
-        this.tokenService.save(user.getUsername(), accessToken, refreshToken);
+        long ttlSeconds = (long) expiryDay * 24 * 60 * 60;
+        RedisToken redisToken = RedisToken.initiate(user.getUsername(), accessToken, refreshToken, ttlSeconds);
+        this.redisTokenService.save(redisToken);
 
         return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
@@ -118,7 +125,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             username = e.getClaims().getSubject();
         }
 
-        this.tokenService.deleteByUsername(username);
+        this.redisTokenService.deleteById(username);
 
         return username;
     }
