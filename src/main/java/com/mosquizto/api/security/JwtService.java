@@ -1,12 +1,14 @@
 package com.mosquizto.api.security;
 
-import com.mosquizto.api.service.TokenService;
+import com.mosquizto.api.model.RedisToken;
+import com.mosquizto.api.service.RedisTokenService;
 import com.mosquizto.api.util.TokenType;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -16,6 +18,7 @@ import java.util.Date;
 
 import static com.mosquizto.api.util.TokenType.*;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class JwtService {
@@ -35,7 +38,7 @@ public class JwtService {
     @Value("${jwt.expiryDay}")
     private int expiryDay;
 
-    private final TokenService tokenService;
+    private final RedisTokenService redisTokenService;
 
     public String generateAccessToken(UserDetails user) {
         return Jwts.builder()
@@ -75,7 +78,20 @@ public class JwtService {
                 && claims.getExpiration().after(new Date());
         if (type == RESET_TOKEN)
             return base;
-        return base && this.tokenService.getByUsername(claims.getSubject()) != null;
+
+        if (!base) return false;
+
+        try {
+            RedisToken storedToken = this.redisTokenService.getById(claims.getSubject());
+            return switch (type) {
+                case ACCESS_TOKEN -> token.equals(storedToken.getAccessToken());
+                case REFRESH_TOKEN -> token.equals(storedToken.getRefreshToken());
+                default -> false;
+            };
+        } catch (Exception e) {
+            log.warn("Redis unavailable during token validation for user [{}]: {}", claims.getSubject(), e.getMessage());
+            return false;
+        }
     }
 
     private SecretKey getKey(TokenType type) {
