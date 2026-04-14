@@ -9,11 +9,13 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
+import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     private final UserCollectionMapper userCollectionMapper;
 
     @Override
+    @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
         String usernameOwner = this.currentUserProvider.getCurrentUsername();
         Collection collection = this.collectionRepository.findById(collectionId)
@@ -59,9 +62,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
 
         UserCollection userCollection = this.userCollectionRepository.findById(id)
                 .orElseGet(() -> UserCollection.builder()
-                        .id(id)
-                        .user(sharedUser)
-                        .collection(collection)
+                        .id(id).user(sharedUser).collection(collection)
+                        .accessStatus(AccessStatus.PENDING) // Đợi người kia đồng ý
                         .build());
 
         userCollection.setRole(shareCollectionRequest.getRole());
@@ -91,7 +93,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
 
         members.put(collection.getCreatedBy().getId(), this.userCollectionMapper.toOwnerMemberResponse(collection.getCreatedBy()));
 
-        this.userCollectionRepository.findAllMembersByCollectionId(collectionId)
+        this.userCollectionRepository.findAllActiveMembersByCollectionId(collectionId)
                 .forEach(userCollection -> members.putIfAbsent(
                         userCollection.getUser().getId(), this.userCollectionMapper.toMemberResponse(userCollection)));
 
@@ -127,6 +129,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     .user(user)
                     .collection(collection)
                     .role(CollectionRole.VIEWER)
+                    .accessStatus(AccessStatus.PENDING)
                     .build();
 
             this.userCollectionRepository.save(userCollection);
@@ -155,6 +158,30 @@ public class UserCollectionServiceImpl implements UserCollectionService {
 
         if (this.userCollectionRepository.existsById(idDelete)) {
             this.userCollectionRepository.deleteById(idDelete);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status) {
+        String ownerUsername = currentUserProvider.getCurrentUsername();
+
+        // Tìm record PENDING
+        UserCollectionId id = new UserCollectionId(userId, collectionId);
+        UserCollection request = userCollectionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
+
+        // Kiểm tra xem người đang gọi có phải là chủ sở hữu collection không
+        if (!request.getCollection().getCreatedBy().getUsername().equals(ownerUsername)) {
+            throw new InvalidDataException("Only owner can approve requests");
+        }
+
+        if (status == AccessStatus.DENIED) {
+            // Nếu từ chối, có thể xóa luôn record hoặc để status DENIED tùy bạn
+            userCollectionRepository.delete(request);
+        } else {
+            request.setAccessStatus(AccessStatus.ENABLE);
+            userCollectionRepository.save(request);
         }
     }
 }

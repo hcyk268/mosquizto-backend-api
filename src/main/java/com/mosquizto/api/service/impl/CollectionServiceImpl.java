@@ -10,6 +10,7 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
+import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionService;
@@ -32,14 +33,13 @@ public class CollectionServiceImpl implements CollectionService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionMapper collectionMapper;
     private final UserCollectionRepository userCollectionRepository;
-
     @Override
     @Transactional // Đảm bảo 2 save thành công
     public Integer addCollection(CollectionRequest request) {
         User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionMapper.toEntity(request, user);
 
-
+        collection.setCount(0);
         Collection savedCollection = this.collectionRepository.save(collection);
 
         // Cập nhật thêm role cho người tạo
@@ -97,7 +97,7 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        CollectionRole role = this.userCollectionRepository.getRoleInUserCollection(user.getId(), collection.getId())
+        CollectionRole role = this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collection.getId())
                 .orElse(null);
 
         if (role == null || role == CollectionRole.VIEWER) {
@@ -112,7 +112,7 @@ public class CollectionServiceImpl implements CollectionService {
     public void deleteCollection(Integer id) {
         User user = currentUserProvider.getCurrentUser();
 
-        CollectionRole role = this.userCollectionRepository.getRoleInUserCollection(user.getId(), id)
+        CollectionRole role = this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), id)
                 .orElse(null);
 
         if (role != CollectionRole.OWNER) {
@@ -148,4 +148,5 @@ public class CollectionServiceImpl implements CollectionService {
                 .items(items)
                 .build();
     }
+
 }

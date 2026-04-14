@@ -39,7 +39,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         }
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
-
+        collectionRepository.updateItemCount(collection.getId(), 1);
         return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(newItem));
     }
 
@@ -69,6 +69,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         }
 
         this.collectionItemRepository.delete(targetItem);
+        collectionRepository.updateItemCount(collection.getId(), -1);
+
         return this.collectionItemMapper.toResponse(targetItem);
     }
 
@@ -101,7 +103,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
      */
     private CollectionRole getUserRoleInCollection(Integer collectionId) {
         User currentUser = currentUserProvider.getCurrentUser();
-        return userCollectionRepository.getRoleInUserCollection(currentUser.getId(), collectionId)
+        return userCollectionRepository.getActiveRoleInUserCollection(currentUser.getId(), collectionId)
                 .orElse(null); // Trả về null nếu user không thuộc collection này
     }
 }

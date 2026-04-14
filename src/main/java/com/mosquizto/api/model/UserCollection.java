@@ -2,6 +2,7 @@ package com.mosquizto.api.model;
 
 
 import com.mosquizto.api.model.key.UserCollectionId;
+import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
 import jakarta.persistence.*;
 import lombok.*;
@@ -38,6 +39,10 @@ public class UserCollection {
     @Enumerated(EnumType.STRING)
     @Column(name = "role", columnDefinition = "collection_role")
     private CollectionRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "access_status")
+    private AccessStatus accessStatus ;
 
     @Column(name = "created_at")
     @CreationTimestamp
