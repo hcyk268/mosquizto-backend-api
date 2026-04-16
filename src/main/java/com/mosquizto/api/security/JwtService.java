@@ -10,11 +10,14 @@ import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static com.mosquizto.api.util.TokenType.*;
 
@@ -22,6 +25,9 @@ import static com.mosquizto.api.util.TokenType.*;
 @RequiredArgsConstructor
 @Service
 public class JwtService {
+
+    private static final String RESET_TOKEN_KEY_PREFIX = "password-reset-token:";
+    private static final long RESET_TOKEN_TTL_MINUTES = 30;
 
     @Value("${jwt.accessKey}")
     private String accessKey;
@@ -39,6 +45,7 @@ public class JwtService {
     private int expiryDay;
 
     private final RedisTokenService redisTokenService;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     public String generateAccessToken(UserDetails user) {
         return Jwts.builder()
@@ -60,12 +67,16 @@ public class JwtService {
     }
 
     public String generateResetToken(UserDetails user) {
-        return Jwts.builder()
+        String tokenId = UUID.randomUUID().toString();
+        String token = Jwts.builder()
+                .id(tokenId)
                 .subject(user.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + 1000L * 30 * 60))
                 .signWith(getKey(RESET_TOKEN))
                 .compact();
+        this.redisTemplate.opsForValue().set(resetTokenKey(tokenId), user.getUsername(), RESET_TOKEN_TTL_MINUTES, TimeUnit.MINUTES);
+        return token;
     }
 
     public String extractUsername(String token, TokenType type) {
@@ -74,10 +85,9 @@ public class JwtService {
 
     public boolean isValid(String token, TokenType type, UserDetails user) {
         Claims claims = extractClaims(token, type);
-        boolean base = claims.getSubject().equals(user.getUsername())
-                && claims.getExpiration().after(new Date());
+        boolean base = hasValidBaseClaims(claims, user);
         if (type == RESET_TOKEN)
-            return base;
+            return base && isStoredResetToken(claims, user);
 
         if (!base) return false;
 
@@ -94,6 +104,15 @@ public class JwtService {
         }
     }
 
+    public boolean consumeResetToken(String token, UserDetails user) {
+        Claims claims = extractClaims(token, RESET_TOKEN);
+        if (!hasValidBaseClaims(claims, user) || !isStoredResetToken(claims, user)) {
+            return false;
+        }
+
+        return Boolean.TRUE.equals(this.redisTemplate.delete(resetTokenKey(claims.getId())));
+    }
+
     private SecretKey getKey(TokenType type) {
         return switch (type) {
             case REFRESH_TOKEN -> Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshKey));
@@ -108,5 +127,29 @@ public class JwtService {
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
+    }
+
+    private boolean hasValidBaseClaims(Claims claims, UserDetails user) {
+        return claims.getSubject().equals(user.getUsername())
+                && claims.getExpiration().after(new Date());
+    }
+
+    private boolean isStoredResetToken(Claims claims, UserDetails user) {
+        String tokenId = claims.getId();
+        if (tokenId == null) {
+            return false;
+        }
+
+        try {
+            Object storedUsername = this.redisTemplate.opsForValue().get(resetTokenKey(tokenId));
+            return storedUsername != null && storedUsername.toString().equals(user.getUsername());
+        } catch (Exception e) {
+            log.warn("Redis unavailable during reset token validation for user [{}]: {}", claims.getSubject(), e.getMessage());
+            return false;
+        }
+    }
+
+    private String resetTokenKey(String tokenId) {
+        return RESET_TOKEN_KEY_PREFIX + tokenId;
     }
 }

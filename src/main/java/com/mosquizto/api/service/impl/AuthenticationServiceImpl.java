@@ -17,6 +17,7 @@ import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -24,6 +25,7 @@ import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -38,7 +40,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationMapper authenticationMapper;
     private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final String OTP_KEY_PREFIX = "password-reset-otp:";
+    private static final String OTP_FIELD = "code";
+    private static final long OTP_TTL_MINUTES = 15;
     private static final SecureRandom random = new SecureRandom();
+    private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${jwt.expiryDay}")
     private int expiryDay;
@@ -136,7 +142,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String verCode = this.generateVerifyCode(8);
 
-        this.userService.saveVerifyCode(user.getId(), verCode);
+        String otpKey = this.passwordResetOtpKey(user.getId());
+        this.redisTemplate.opsForHash().put(otpKey, OTP_FIELD, verCode);
+        this.redisTemplate.expire(otpKey, OTP_TTL_MINUTES, TimeUnit.MINUTES);
 
         this.mailService.sendVerifyCode(email, verCode);
     }
@@ -145,7 +153,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public ResetPasswordTokenResponse verifyCodeForgotPassword(VerifyCodeRequest verifyCodeRequest) {
         var user = this.userService.getByEmail(verifyCodeRequest.getEmail());
 
-        if (!user.getVerifyCode().equals(verifyCodeRequest.getCode())) {
+        String otpKey = this.passwordResetOtpKey(user.getId());
+        Object otp = this.redisTemplate.opsForHash().get(otpKey, OTP_FIELD);
+        if (otp == null || !otp.toString().equals(verifyCodeRequest.getCode())) {
+            throw new InvalidDataException("Verify Code Invalid");
+        }
+
+        Long deletedOtp = this.redisTemplate.opsForHash().delete(otpKey, OTP_FIELD);
+        if (deletedOtp == null || deletedOtp == 0) {
             throw new InvalidDataException("Verify Code Invalid");
         }
 
@@ -164,7 +179,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         var user = this.userService.getByUsername(username);
 
-        if (!this.jwtService.isValid(resetPasswordRequest.getSecretKey(), TokenType.RESET_TOKEN, user))
+        if (!this.jwtService.consumeResetToken(resetPasswordRequest.getSecretKey(), user))
             throw new InvalidTokenException("Token invalid");
 
         user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
@@ -182,5 +197,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         return code.toString();
+    }
+
+    private String passwordResetOtpKey(Long userId) {
+        return OTP_KEY_PREFIX + userId;
     }
 }
