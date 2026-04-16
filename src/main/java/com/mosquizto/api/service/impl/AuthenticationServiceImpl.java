@@ -1,15 +1,28 @@
 package com.mosquizto.api.service.impl;
 
-import com.mosquizto.api.dto.request.*;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.mosquizto.api.dto.request.AddUserRequest;
+import com.mosquizto.api.dto.request.ResetPasswordRequest;
+import com.mosquizto.api.dto.request.SignInRequest;
+import com.mosquizto.api.dto.request.SignUpRequest;
+import com.mosquizto.api.dto.request.VerifyCodeRequest;
 import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.TokenResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
+import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.AuthenticationMapper;
 import com.mosquizto.api.model.RedisToken;
-import com.mosquizto.api.service.*;
+import com.mosquizto.api.model.Role;
+import com.mosquizto.api.model.User;
+import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.security.JwtService;
+import com.mosquizto.api.service.AuthenticationService;
+import com.mosquizto.api.service.MailService;
+import com.mosquizto.api.service.RedisTokenService;
+import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.TokenType;
+import com.mosquizto.api.util.UserStatus;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -32,6 +45,14 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
 
+    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    private static final String OTP_KEY_PREFIX = "password-reset-otp:";
+    private static final String OTP_FIELD = "code";
+    private static final long OTP_TTL_MINUTES = 15;
+    private static final String DEFAULT_ROLE = "USER";
+    private static final String GOOGLE_USERNAME_FALLBACK = "googleuser";
+    private static final SecureRandom random = new SecureRandom();
+
     private final AuthenticationManager authenticationManager;
     private final UserService userService;
     private final JwtService jwtService;
@@ -39,11 +60,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final MailService mailService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationMapper authenticationMapper;
-    private static final String CHARACTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final String OTP_KEY_PREFIX = "password-reset-otp:";
-    private static final String OTP_FIELD = "code";
-    private static final long OTP_TTL_MINUTES = 15;
-    private static final SecureRandom random = new SecureRandom();
+    private final RoleRepository roleRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     @Value("${jwt.expiryDay}")
@@ -66,7 +83,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
-
 
     @Override
     public TokenResponse refreshToken(String refreshToken) {
@@ -176,16 +192,31 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             throw new InvalidDataException("Password not match");
 
         String username = this.jwtService.extractUsername(resetPasswordRequest.getSecretKey(), TokenType.RESET_TOKEN);
-
         var user = this.userService.getByUsername(username);
 
         if (!this.jwtService.consumeResetToken(resetPasswordRequest.getSecretKey(), user))
             throw new InvalidTokenException("Token invalid");
 
         user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
-
         this.userService.save(user);
+    }
 
+    @Override
+    public TokenResponse loginGoogle(GoogleIdToken.Payload payload) {
+        String email = payload.getEmail();
+        if (email == null || email.isBlank() || !Boolean.TRUE.equals(payload.getEmailVerified())) {
+            throw new InvalidDataException("Google account is invalid");
+        }
+
+        User user = this.getOrCreateGoogleUser(payload);
+
+        String accessToken = this.jwtService.generateAccessToken(user);
+        String refreshToken = this.jwtService.generateRefreshToken(user);
+        long ttlSeconds = (long) expiryDay * 24 * 60 * 60;
+        RedisToken redisToken = RedisToken.initiate(user.getUsername(), accessToken, refreshToken, ttlSeconds);
+        this.redisTokenService.save(redisToken);
+
+        return this.authenticationMapper.toTokenResponse(user, accessToken, refreshToken);
     }
 
     private String generateVerifyCode(int length) {
@@ -201,5 +232,61 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     private String passwordResetOtpKey(Long userId) {
         return OTP_KEY_PREFIX + userId;
+    }
+
+    private User getOrCreateGoogleUser(GoogleIdToken.Payload payload) {
+        User user = this.userService.checkEmailExists(payload.getEmail())
+                ? this.userService.getByEmail(payload.getEmail())
+                : User.builder()
+                .email(payload.getEmail())
+                .username(this.generateGoogleUsername(payload.getEmail()))
+                .password(this.passwordEncoder.encode(UUID.randomUUID().toString()))
+                .build();
+
+        if (user.getFullName() == null || user.getFullName().isBlank()) {
+            user.setFullName(this.getGoogleName(payload, payload.getEmail()));
+        }
+
+        if (user.getRole() == null) {
+            user.setRole(this.getDefaultUserRole());
+        }
+
+        user.setStatus(UserStatus.ACTIVE);
+        user.setVerifyCode(null);
+        this.userService.save(user);
+        return user;
+    }
+
+    private Role getDefaultUserRole() {
+        return this.roleRepository.findByName(DEFAULT_ROLE)
+                .orElseThrow(() -> new ResourceNotFoundException("Role not found: " + DEFAULT_ROLE));
+    }
+
+    private String getGoogleName(GoogleIdToken.Payload payload, String email) {
+        Object name = payload.get("name");
+        if (name instanceof String value && !value.isBlank()) {
+            return value;
+        }
+
+        int atIndex = email.indexOf("@");
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
+    }
+
+    private String generateGoogleUsername(String email) {
+        int atIndex = email.indexOf("@");
+        String base = (atIndex > 0 ? email.substring(0, atIndex) : email)
+                .replaceAll("[^A-Za-z0-9._-]", "");
+        if (base.isBlank()) {
+            base = GOOGLE_USERNAME_FALLBACK;
+        }
+        if (base.length() > 95) {
+            base = base.substring(0, 95);
+        }
+
+        String username = base;
+        while (this.userService.checkUsernameExists(username)) {
+            username = base + (10000 + random.nextInt(90000));
+        }
+        return username;
     }
 }
