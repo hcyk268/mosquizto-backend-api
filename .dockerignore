@@ -1,0 +1,8 @@
+.git
+.gitignore
+.idea
+.m2
+target
+*.md
+.env
+.env.example

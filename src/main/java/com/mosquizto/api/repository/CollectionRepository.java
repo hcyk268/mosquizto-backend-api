@@ -32,5 +32,5 @@ public interface CollectionRepository extends JpaRepository<Collection, Integer>
     @Transactional
     @Query("UPDATE Collection c SET c.count = (SELECT COUNT(ci) FROM CollectionItem ci WHERE ci.collection.id = c.id)")
     void syncAllCounts();
-    
+
 }
