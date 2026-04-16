@@ -1,12 +1,11 @@
 package com.mosquizto.api.controller;
 
-import com.mosquizto.api.dto.request.ResetPasswordRequest;
-import com.mosquizto.api.dto.request.SignInRequest;
-import com.mosquizto.api.dto.request.SignUpRequest;
-import com.mosquizto.api.dto.request.VerifyCodeRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.mosquizto.api.dto.request.*;
 import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.dto.response.TokenResponse;
+import com.mosquizto.api.security.GoogleVerifier;
 import com.mosquizto.api.service.AuthenticationService;
 import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final GoogleVerifier googleVerifier;
 
     // ─────────────────────────────────────────────────────────── REGISTER ──
 
@@ -467,5 +467,11 @@ public class AuthenticationController {
             @Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
         this.authenticationService.resetPassword(resetPasswordRequest);
         return new ResponseData<>(HttpStatus.OK.value(), "Success");
+    }
+
+    @PostMapping("/google")
+    public ResponseData<TokenResponse> loginGoogle(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) throws Exception {
+        GoogleIdToken.Payload payload = this.googleVerifier.verify(googleLoginRequest.getIdToken());
+        return new ResponseData<>(HttpStatus.OK.value(), "Login successfully", this.authenticationService.loginGoogle(payload));
     }
 }

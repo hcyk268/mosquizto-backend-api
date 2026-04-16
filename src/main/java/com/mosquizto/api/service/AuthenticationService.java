@@ -1,5 +1,6 @@
 package com.mosquizto.api.service;
 
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.mosquizto.api.dto.request.ResetPasswordRequest;
 import com.mosquizto.api.dto.request.SignInRequest;
 import com.mosquizto.api.dto.request.SignUpRequest;
@@ -21,4 +22,6 @@ public interface AuthenticationService {
     ResetPasswordTokenResponse verifyCodeForgotPassword(VerifyCodeRequest verifyCodeRequest);
 
     void resetPassword(ResetPasswordRequest resetPasswordRequest);
+
+    TokenResponse loginGoogle(GoogleIdToken.Payload payload);
 }

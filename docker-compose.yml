@@ -49,6 +49,7 @@ services:
       JWT_ACCESS_KEY: ${JWT_ACCESS_KEY}
       JWT_REFRESH_KEY: ${JWT_REFRESH_KEY}
       JWT_RESET_KEY: ${JWT_RESET_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       SERVER_URL: http://${VPS_IP:-localhost}:8080/
     depends_on:
       postgres:

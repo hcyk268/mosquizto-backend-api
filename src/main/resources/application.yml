@@ -65,5 +65,8 @@ jwt:
   refreshKey: ${JWT_REFRESH_KEY}
   resetKey: ${JWT_RESET_KEY}
 
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm
