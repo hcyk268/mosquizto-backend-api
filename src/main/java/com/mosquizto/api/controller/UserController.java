@@ -6,7 +6,9 @@ import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.dto.response.UserResponse;
+import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.service.UserService;
+import com.mosquizto.api.util.AccessStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -18,6 +20,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -457,4 +460,5 @@ public class UserController {
         this.userService.updateUser(updateUserRequest);
         return new ResponseData<>(HttpStatus.OK.value(), "Update user success");
     }
+
 }

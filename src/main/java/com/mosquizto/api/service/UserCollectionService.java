@@ -2,6 +2,7 @@ package com.mosquizto.api.service;
 
 import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.MemberResponse;
+import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.util.AccessStatus;
 import jakarta.validation.Valid;
 

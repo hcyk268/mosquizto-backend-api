@@ -57,6 +57,7 @@ public class CollectionController {
         collectionService.deleteCollection(id);
         return new ResponseData<>(HttpStatus.OK.value(), "Delete success");
     }
+    @Operation(summary = "Get available public collection", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/public")
     public ResponseData<PageResponse<CollectionResponse>> getAllPublicCollection(
             @RequestParam(defaultValue = "1" , name = "page") int page,

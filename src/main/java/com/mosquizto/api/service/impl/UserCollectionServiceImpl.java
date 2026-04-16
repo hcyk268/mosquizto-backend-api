@@ -165,7 +165,6 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     public void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status) {
         String ownerUsername = currentUserProvider.getCurrentUsername();
-
         // Tìm record PENDING
         UserCollectionId id = new UserCollectionId(userId, collectionId);
         UserCollection request = userCollectionRepository.findById(id)
