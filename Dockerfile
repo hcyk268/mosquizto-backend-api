@@ -9,8 +9,7 @@ RUN chmod +x mvnw && ./mvnw dependency:go-offline -B --no-transfer-progress
 COPY src/ src/
 RUN ./mvnw package -DskipTests -B --no-transfer-progress
 
-# Spring Boot 3.2+ uses jarmode=tools instead of layertools
-RUN java -Djarmode=tools -jar target/*.jar extract --layers --destination extracted
+RUN java -Djarmode=layertools -jar target/*.jar extract --destination extracted
 
 # ---- Run stage ----
 FROM eclipse-temurin:17-jre-alpine

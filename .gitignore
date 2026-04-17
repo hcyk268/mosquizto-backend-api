@@ -35,5 +35,3 @@ build/
 
 ### Environment / Secrets ###
 .env
-**/src/main/resources/application.yml
-**/src/main/resources/application-seed.yml
