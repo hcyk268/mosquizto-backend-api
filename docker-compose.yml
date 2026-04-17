@@ -21,11 +21,11 @@ services:
     image: redis:7-alpine
     container_name: mosquizto_redis
     hostname: redis
+    command: redis-server --rename-command FLUSHDB "" --rename-command FLUSHALL ""
     ports:
       - '6379:6379'
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - REDIS_DISABLE_COMMANDS=FLUSHDB;FLUSHALL
+    volumes:
+      - redis_data:/data
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
@@ -60,3 +60,4 @@ services:
 
 volumes:
   pg_data:
+  redis_data:
