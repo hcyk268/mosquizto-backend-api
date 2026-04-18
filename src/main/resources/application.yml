@@ -67,6 +67,8 @@ jwt:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
-
+meilisearch:
+  host: ${MEILISEARCH_HOST}
+  masterKey: ${MEILI_MASTER_KEY} # use the same master key configured for your instance
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm

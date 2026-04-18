@@ -7,12 +7,14 @@ import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
+import com.mosquizto.api.model.CollectionDocument;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
+import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.util.CollectionRole;
@@ -33,6 +35,7 @@ public class CollectionServiceImpl implements CollectionService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionMapper collectionMapper;
     private final UserCollectionRepository userCollectionRepository;
+    private final CollectionSearchService collectionSearchService ;
     @Override
     @Transactional // Đảm bảo 2 save thành công
     public Integer addCollection(CollectionRequest request) {
@@ -57,7 +60,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .build();
 
         this.userCollectionRepository.save(userCollection);
-
+        collectionSearchService.upsert(savedCollection);
         return savedCollection.getId();
     }
 
@@ -118,7 +121,7 @@ public class CollectionServiceImpl implements CollectionService {
         if (role != CollectionRole.OWNER) {
             throw new InvalidDataException("Only the owner can delete this collection");
         }
-
+        collectionSearchService.delete(id);
         this.collectionRepository.deleteById(id);
     }
 
@@ -148,5 +151,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .items(items)
                 .build();
     }
+
+
 
 }

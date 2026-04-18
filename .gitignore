@@ -29,9 +29,8 @@ target/
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/
-
 ### VS Code ###
 .vscode/
-
+meili_data/
 ### Environment / Secrets ###
 .env
