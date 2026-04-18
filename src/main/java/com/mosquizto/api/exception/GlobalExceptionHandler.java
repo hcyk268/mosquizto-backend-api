@@ -4,11 +4,13 @@ import com.mosquizto.api.dto.response.ErrorResponseException;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.context.request.WebRequest;
 
 import java.util.Date;
@@ -131,5 +133,25 @@ public class GlobalExceptionHandler {
         return err;
     }
 
+    @ExceptionHandler(LimitExceedException.class)
+    @ResponseStatus(TOO_MANY_REQUESTS)
+    public ErrorResponseException handleLimitExceedException(LimitExceedException e, WebRequest request) {
+        if (request instanceof ServletWebRequest servletWebRequest) {
+            HttpServletResponse response = servletWebRequest.getResponse();
+            if (response != null && e.getRetryAfterSeconds() != null) {
+                response.setHeader("Retry-After", String.valueOf(e.getRetryAfterSeconds()));
+            }
+        }
+
+        ErrorResponseException err = new ErrorResponseException();
+        err.setTimestamp(new Date());
+        err.setStatus(TOO_MANY_REQUESTS.value());
+        err.setPath(request.getDescription(false).replace("uri=", ""));
+        err.setError("Too Many Requests");
+        err.setMessage(e.getRetryAfterSeconds() == null
+                ? e.getMessage()
+                : e.getMessage() + ". Retry after " + e.getRetryAfterSeconds() + " seconds.");
+        return err;
+    }
 
 }
