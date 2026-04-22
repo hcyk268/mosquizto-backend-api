@@ -108,7 +108,8 @@ public class CollectionServiceImpl implements CollectionService {
         }
 
         this.collectionMapper.updateEntity(collection, request);
-        this.collectionRepository.save(collection);
+        var updatedCollection = collectionRepository.save(collection);
+        collectionSearchService.upsert(updatedCollection);
     }
 
     @Override

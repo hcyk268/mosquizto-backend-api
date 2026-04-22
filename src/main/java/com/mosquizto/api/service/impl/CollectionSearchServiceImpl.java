@@ -77,34 +77,44 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         return (SearchResultPaginated ) meiliClient.index(INDEX).search(request);
     }
     private String buildFilter(String createdByUsername) {
-        List<String> filters = new ArrayList<>();
-        filters.add("visibility = true");  // chỉ search public
         if (createdByUsername != null) {
-            filters.add("createdByUsername = \"" + createdByUsername + "\"");
+            return "(visibility = true) OR (createdByUsername = \"" + createdByUsername + "\")";
         }
-        return filters.isEmpty() ? null : String.join(" AND ", filters);
+        return "visibility = true";
     }
     @Override
     public void ReindexAll() {
+        log.info("Starting lazy reindex for Meilisearch...");
         configureIndex();
 
-        List<Collection> all = collectionRepository.findAll();
-        if (all.isEmpty()) return;
+        int page = 0;
+        int pageSize = 500;
+        long totalIndexed = 0;
+        org.springframework.data.domain.Page<Collection> collectionPage;
 
-        List<CollectionDocument> docs = all.stream()
-                .map(c -> CollectionDocument.builder()
-                        .id(c.getId())
-                        .title(c.getTitle())
-                        .description(c.getDescription())
-                        .visibility(c.getVisibility())
-                        .createdByUsername(c.getCreatedBy().getUsername())
-                        .count(c.getCount())
-                        .build())
-                .toList();
+        do {
+            collectionPage = collectionRepository.findAll(org.springframework.data.domain.PageRequest.of(page, pageSize));
 
-        meiliClient.index(INDEX)
-                .addDocuments(new Gson().toJson(docs), "id");
+            if (collectionPage.hasContent()) {
+                List<CollectionDocument> docs = collectionPage.getContent().stream()
+                        .map(c -> CollectionDocument.builder()
+                                .id(c.getId())
+                                .title(c.getTitle())
+                                .description(c.getDescription())
+                                .visibility(c.getVisibility())
+                                .createdByUsername(c.getCreatedBy().getUsername())
+                                .count(c.getCount())
+                                .build())
+                        .toList();
+                meiliClient.index(INDEX).addDocuments(new Gson().toJson(docs), "id");
 
-        log.info("Reindexed {} collections to Meilisearch", docs.size());
+                totalIndexed += docs.size();
+                log.info("Indexed batch: page {}, size {}", page, docs.size());
+            }
+
+            page++;
+        } while (collectionPage.hasNext());
+
+        log.info("Total reindexed {} collections to Meilisearch", totalIndexed);
     }
 }

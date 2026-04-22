@@ -80,6 +80,7 @@ public class CollectionController {
         SearchResultPaginated response = collectionSearchService.search(q, page, size, author);
         return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
     }
+    @Operation(summary = "manually create  index for searching", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/create_index")
     public ResponseData<Void> createIndex()
     {

@@ -12,6 +12,7 @@ import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionItemService;
+import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
@@ -28,7 +29,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemMapper collectionItemMapper;
     private final UserCollectionRepository userCollectionRepository;
-
+    private final CollectionSearchService collectionSearchService ;
     @Override
     public CollectionItemResponse addNewItem(CollectionItemRequest request) {
         var collection = findCollectionById(request.getCollectionId());
@@ -40,6 +41,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
         collectionRepository.updateItemCount(collection.getId(), 1);
+        collectionSearchService.upsert(collection);
         return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(newItem));
     }
 
@@ -70,7 +72,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
 
         this.collectionItemRepository.delete(targetItem);
         collectionRepository.updateItemCount(collection.getId(), -1);
-
+        collectionSearchService.upsert(collection);
         return this.collectionItemMapper.toResponse(targetItem);
     }
 
@@ -97,10 +99,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         return collectionItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
     }
-
-    /**
-     * Hàm lấy quyền (Role) của User hiện tại đối với một Collection
-     */
+    
     private CollectionRole getUserRoleInCollection(Integer collectionId) {
         User currentUser = currentUserProvider.getCurrentUser();
         return userCollectionRepository.getActiveRoleInUserCollection(currentUser.getId(), collectionId)
