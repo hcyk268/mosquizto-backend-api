@@ -127,6 +127,11 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.meilisearch.sdk</groupId>
+			<artifactId>meilisearch-java</artifactId>
+			<version>0.20.0</version> <!-- Use latest version -->
+		</dependency>
 	</dependencies>
 
 	<build>

@@ -1,9 +1,12 @@
 package com.mosquizto.api.controller;
 
+import com.meilisearch.sdk.model.SearchResult;
+import com.meilisearch.sdk.model.SearchResultPaginated;
 import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.ResponseData;
+import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -13,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.awt.print.Pageable;
 
@@ -23,7 +27,7 @@ import java.awt.print.Pageable;
 public class CollectionController {
 
     private final CollectionService collectionService;
-
+    private final CollectionSearchService collectionSearchService ;
     @Operation(summary = "Create new collection", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping
     public ResponseData<Integer> create(@Valid @RequestBody CollectionRequest request) {
@@ -65,5 +69,22 @@ public class CollectionController {
     {
         PageResponse<CollectionResponse> response = collectionService.getAllPublicCollection(page,size);
         return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+    }
+    @GetMapping("/search")
+    public ResponseData<SearchResultPaginated > search(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String author
+    ) {
+        SearchResultPaginated response = collectionSearchService.search(q, page, size, author);
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", response);
+    }
+    @Operation(summary = "manually create  index for searching", security = @SecurityRequirement(name = "bearerAuth"))
+    @GetMapping("/create_index")
+    public ResponseData<Void> createIndex()
+    {
+        collectionSearchService.ReindexAll();
+        return new ResponseData<>(HttpStatus.OK.value(),"success");
     }
 }

@@ -16,4 +16,5 @@ public interface CollectionService {
     Collection save(Collection collection);
     // Tương tác bên ngoài , ko thông qua user
     PageResponse<CollectionResponse> getAllPublicCollection(int page, int size);
+
 }

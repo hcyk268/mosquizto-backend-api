@@ -67,6 +67,8 @@ jwt:
 
 google:
   client-id: ${GOOGLE_CLIENT_ID}
-
+meilisearch:
+  host: ${MEILI_SEARCH_HOST}
+  masterKey: ${MEILI_MASTER_KEY}
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm
