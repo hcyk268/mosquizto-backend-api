@@ -31,8 +31,10 @@ public class CollectionMapper {
                 .description(collection.getDescription())
                 .visibility(collection.getVisibility())
                 .userId(collection.getCreatedBy() != null ? collection.getCreatedBy().getId() : null)
+                .userName(collection.getCreatedBy() != null ? collection.getCreatedBy().getUsername() : null)
                 .createdAt(collection.getCreatedAt())
                 .updatedAt(collection.getUpdatedAt())
+                .count(collection.getCollectionItems().size())
                 .build();
     }
 }
