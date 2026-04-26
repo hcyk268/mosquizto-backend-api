@@ -61,6 +61,7 @@ services:
       meilisearch:
         condition: service_started
     restart: unless-stopped
+
   meilisearch:
     image: getmeili/meilisearch:v1.7.2
     container_name: meilisearch
