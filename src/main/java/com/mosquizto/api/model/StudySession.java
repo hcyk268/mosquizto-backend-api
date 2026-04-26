@@ -63,7 +63,7 @@ public class StudySession extends AbstractEntity<Long> {
         return this.completedAt != null;
     }
 
-    public StudySessionDetail recordAnswer(CollectionItem collectionItem, boolean isCorrect, Integer responseTimeMs) {
+    public StudySessionDetail recordAnswer(CollectionItem collectionItem, boolean isCorrect, Double responseTimeMs) {
         ensureActive();
 
         StudySessionDetail detail = StudySessionDetail.create(this, collectionItem, isCorrect, responseTimeMs);

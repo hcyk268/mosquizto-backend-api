@@ -43,6 +43,9 @@ public class UserCollection {
     @CreationTimestamp
     private Date createdAt;
 
+    @Column(name="last_opened_at")
+    private Date lastOpenedAt ;
+
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Date updatedAt;

@@ -2,6 +2,7 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.AnswerRequest;
 import com.mosquizto.api.dto.request.StartStudySessionRequest;
+import com.mosquizto.api.dto.request.StudySessionDetailRequest;
 import com.mosquizto.api.dto.response.*;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -180,4 +182,49 @@ public class StudySessionServiceImpl implements StudySessionService {
         );
     }
 
+    @Override
+    @Transactional
+    public StudySessionResultResponse completeBatch(Long sessionId, List<StudySessionDetailRequest> detailRequests) {
+
+        StudySession studySession = studySessionRepository.findById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
+
+//        String username = this.currentUserProvider.getCurrentUsername();
+//        if (!studySession.isOwnedBy(username)) {
+//            throw new InvalidDataException("You do not have permission to complete this session");
+//        }
+
+        // 2. Xử lý từng câu trả lời từ client gửi lên
+        for (StudySessionDetailRequest request : detailRequests) {
+            CollectionItem ci = collectionItemRepository.findById(request.getItemId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + request.getItemId()));
+
+            studySession.recordAnswer(
+                    ci,
+                    request.getIsCorrect(),
+                    request.getResponseTimeMs()
+            );
+        }
+
+        studySession.complete(new Date());
+
+        studySessionRepository.save(studySession);
+
+        long durationMs = studySession.calculateDurationMs();
+        double accuracyRate = studySession.calculateAccuracyRate();
+
+        return this.studySessionMapper.toResultResponse(studySession, accuracyRate, durationMs);
+    }
+
+    @Override
+    public List<StudySessionResponse> getJumpBackInStudySession() {
+        var userId = this.currentUserProvider.getCurrentUser().getId();
+        var list = studySessionRepository.getJumpBackInStudySession(userId) ;
+        List<StudySessionResponse> responses = new ArrayList<>();
+        list.forEach(ss->
+        {
+            responses.add(this.studySessionMapper.toResponse(ss)) ;
+        });
+        return List.of();
+    }
 }

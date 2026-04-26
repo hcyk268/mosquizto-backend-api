@@ -23,12 +23,12 @@ public class StudySessionDetail extends AbstractEntity<Long> {
     private Boolean isCorrect;
 
     @Column(name = "response_time_ms")
-    private Integer responseTimeMs;
+    private Double responseTimeMs;
 
     public static StudySessionDetail create(StudySession studySession,
                                             CollectionItem collectionItem,
                                             boolean isCorrect,
-                                            Integer responseTimeMs) {
+                                            Double responseTimeMs) {
         return StudySessionDetail.builder()
                 .studySession(studySession)
                 .collectionItem(collectionItem)

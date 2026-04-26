@@ -28,6 +28,6 @@ public class StudySessionDetailsResponse implements Serializable {
         private String term;
         private String correctAnswer;
         private Boolean isCorrect;
-        private Integer responseTimeMs;
+        private Double responseTimeMs;
     }
 }

@@ -7,8 +7,10 @@ import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
+import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.AuthenticatedUserService;
 import com.mosquizto.api.service.CollectionService;
+import com.mosquizto.api.service.UserCollectionService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -23,6 +25,8 @@ public class CollectionServiceImpl implements CollectionService {
 
     private final CollectionRepository collectionRepository;
     private final AuthenticatedUserService authenticatedUserService ;
+    private final UserCollectionRepository userCollectionRepository ;
+    private final UserCollectionService userCollectionService ;
     @Override
     public Integer addCollection(CollectionRequest request, HttpServletRequest httpServletRequest) {
         User user = authenticatedUserService.getAuthenticatedUser(httpServletRequest);

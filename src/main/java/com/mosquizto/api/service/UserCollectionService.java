@@ -14,4 +14,6 @@ public interface UserCollectionService {
     void joinCollection(String token, Integer collectionId);
 
     void deleteCollectionMember(String token, Integer collectionId, Long userId);
+
+
 }

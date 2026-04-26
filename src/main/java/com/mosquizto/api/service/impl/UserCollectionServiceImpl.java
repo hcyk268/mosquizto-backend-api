@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -130,11 +131,13 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         boolean isJoinedCollection = this.userCollectionRepository.existsById(id);
 
         if (!isJoinedCollection) {
+            CollectionRole collectionRole = (collection.getCreatedBy().getId().equals(user.getId())) ? CollectionRole.OWNER : CollectionRole.VIEWER ;
             UserCollection userCollection = UserCollection.builder()
                     .id(id)
                     .user(user)
                     .collection(collection)
-                    .role(CollectionRole.VIEWER)
+                    .role(collectionRole)
+                    .lastOpenedAt(new Date())
                     .build();
 
             this.userCollectionRepository.save(userCollection);

@@ -2,14 +2,18 @@ package com.mosquizto.api.controller;
 
 import com.mosquizto.api.dto.request.AnswerRequest;
 import com.mosquizto.api.dto.request.StartStudySessionRequest;
+import com.mosquizto.api.dto.request.StudySessionDetailRequest;
 import com.mosquizto.api.dto.response.*;
 import com.mosquizto.api.service.StudySessionService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Validated
 @RequiredArgsConstructor
@@ -56,5 +60,21 @@ public class StudySessionController {
     public ResponseData<StudySessionStatsResponse> getStudySessionDetails(@PathVariable Integer collectionId) {
         return new ResponseData<>(HttpStatus.OK.value(), "Get study session stats successfully",
                 this.studySessionService.getStudySessionStats(collectionId));
+    }
+
+    @PostMapping("/{sessionId}/comple-batch")
+    @Operation()
+    public ResponseData<StudySessionResultResponse> completeBatch(@PathVariable("sessionId") Long sessionId , @RequestBody
+                                                                 List<StudySessionDetailRequest> list)
+    {
+        return new ResponseData<>(HttpStatus.OK.value(), "Complete batch of session",
+                this.studySessionService.completeBatch(sessionId,list));
+    }
+
+    @GetMapping("/get-jump-back-in")
+    public ResponseData<List<StudySessionResponse>> getJumpBackIn()
+    {
+        return  new ResponseData<>(HttpStatus.OK.value(),"get jump back in study session",
+                this.studySessionService.getJumpBackInStudySession());
     }
 }

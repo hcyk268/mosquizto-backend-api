@@ -14,5 +14,5 @@ public class AnswerRequest implements Serializable {
     @NotBlank
     private String definition;
 
-    private Integer responseTime;
+    private Double responseTime;
 }
