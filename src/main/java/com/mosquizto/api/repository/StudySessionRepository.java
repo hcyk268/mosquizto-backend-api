@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -14,12 +15,12 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
     Page<StudySession> findAllByUserId(Long userId, Pageable pageable);
     java.util.List<StudySession> findAllByUserIdAndCollectionId(Long userId, Integer collectionId);
 
-    @Query("SELECT s, MAX(s.started_at) \n" +
-            "FROM tbl_study_session s\n" +
-            "WHERE s.user_id = :userId AND s.completed_at IS NULL\n" +
+    @Query("SELECT s, MAX(s.startedAt) \n" +
+            "FROM StudySession s\n" +
+            "WHERE s.user.id = :userId AND s.completedAt IS NULL\n" +
             "GROUP BY s.id\n" +
-            "ORDER BY MAX(s.started_at) DESC")
-    List<StudySession> getJumpBackInStudySession(Long userId) ;
+            "ORDER BY MAX(s.startedAt) DESC")
+    List<StudySession> getJumpBackInStudySession(@Param("userId") Long userId) ;
 }
 
 

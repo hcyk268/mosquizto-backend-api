@@ -1,13 +1,14 @@
 package com.mosquizto.api.controller;
 
-import com.mosquizto.api.dto.request.ResetPasswordRequest;
-import com.mosquizto.api.dto.request.SignInRequest;
-import com.mosquizto.api.dto.request.SignUpRequest;
-import com.mosquizto.api.dto.request.VerifyCodeRequest;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.mosquizto.api.dto.request.*;
 import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.dto.response.TokenResponse;
+import com.mosquizto.api.security.GoogleVerifier;
 import com.mosquizto.api.service.AuthenticationService;
+import com.mosquizto.api.util.AuthorizationHeaderUtils;
+import com.mosquizto.api.util.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthenticationController {
 
     private final AuthenticationService authenticationService;
+    private final GoogleVerifier googleVerifier;
 
     // ─────────────────────────────────────────────────────────── REGISTER ──
 
@@ -92,8 +94,23 @@ public class AuthenticationController {
                                             }
                                             """)
                             })
+            ),
+            @ApiResponse(
+                    responseCode = "429",
+                    description = "Too many register attempts from the same client",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-03-17T10:00:00.000+00:00",
+                                      "status": 429,
+                                      "path": "/auth/register",
+                                      "error": "Too Many Requests",
+                                      "message": "Too Many Requests. Retry after 120 seconds."
+                                    }
+                                    """))
             )
     })
+    @RateLimit(action = "register", maxRequests = 5, timeWindow = 600)
     @PostMapping("/register")
     public ResponseData<String> signUp(
             @Valid @RequestBody SignUpRequest signUpRequest) {
@@ -170,8 +187,23 @@ public class AuthenticationController {
                                       "message": "Account is not activated. Please verify your email."
                                     }
                                     """))
+            ),
+            @ApiResponse(
+                    responseCode = "429",
+                    description = "Too many login attempts from the same client",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-03-17T10:00:00.000+00:00",
+                                      "status": 429,
+                                      "path": "/auth/login",
+                                      "error": "Too Many Requests",
+                                      "message": "Too Many Requests. Retry after 30 seconds."
+                                    }
+                                    """))
             )
     })
+    @RateLimit(action = "login", maxRequests = 10, timeWindow = 60)
     @PostMapping("/login")
     public ResponseData<TokenResponse> login(
             @Valid @RequestBody SignInRequest signInRequest) {
@@ -244,7 +276,8 @@ public class AuthenticationController {
     })
     @PostMapping("/refresh-token")
     public ResponseData<TokenResponse> refresh(HttpServletRequest request) {
-        return new ResponseData<>(HttpStatus.OK.value(), "Token refreshed successfully", this.authenticationService.refreshToken(request));
+        String refreshToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
+        return new ResponseData<>(HttpStatus.OK.value(), "Token refreshed successfully", this.authenticationService.refreshToken(refreshToken));
     }
 
     // ─────────────────────────────────────────────────────────────── LOGOUT ──
@@ -288,7 +321,8 @@ public class AuthenticationController {
     })
     @PostMapping("/logout")
     public ResponseData<String> logout(HttpServletRequest request) {
-        return new ResponseData<>(HttpStatus.OK.value(), "Logout successfully", this.authenticationService.logout(request));
+        String accessToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
+        return new ResponseData<>(HttpStatus.OK.value(), "Logout successfully", this.authenticationService.logout(accessToken));
     }
 
     // ───────────────────────────────────────────────────── FORGOT PASSWORD ──
@@ -328,8 +362,23 @@ public class AuthenticationController {
                                       "message": "User not found with email: user@example.com"
                                     }
                                     """))
+            ),
+            @ApiResponse(
+                    responseCode = "429",
+                    description = "Too many forgot-password requests from the same client",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-03-17T10:00:00.000+00:00",
+                                      "status": 429,
+                                      "path": "/auth/forgot-password",
+                                      "error": "Too Many Requests",
+                                      "message": "Too Many Requests. Retry after 300 seconds."
+                                    }
+                                    """))
             )
     })
+    @RateLimit(action = "forgot-password", maxRequests = 5, timeWindow = 900)
     @PostMapping("/forgot-password")
     public ResponseData<?> forgotPassword(
             @RequestBody String email) {
@@ -387,8 +436,23 @@ public class AuthenticationController {
                                             }
                                             """)
                             })
+            ),
+            @ApiResponse(
+                    responseCode = "429",
+                    description = "Too many OTP verification attempts from the same client",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-03-17T10:00:00.000+00:00",
+                                      "status": 429,
+                                      "path": "/auth/verify-code-forgot-password",
+                                      "error": "Too Many Requests",
+                                      "message": "Too Many Requests. Retry after 60 seconds."
+                                    }
+                                    """))
             )
     })
+    @RateLimit(action = "verify-code-forgot-password", maxRequests = 5, timeWindow = 900)
     @PostMapping("/verify-code-forgot-password")
     public ResponseData<ResetPasswordTokenResponse> verifyCodeForgotPassword(
             @Valid @RequestBody VerifyCodeRequest verifyCodeRequest) {
@@ -457,12 +521,34 @@ public class AuthenticationController {
                                             }
                                             """)
                             })
+            ),
+            @ApiResponse(
+                    responseCode = "429",
+                    description = "Too many reset-password attempts from the same client",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            examples = @ExampleObject(value = """
+                                    {
+                                      "timestamp": "2026-03-17T10:00:00.000+00:00",
+                                      "status": 429,
+                                      "path": "/auth/reset-password",
+                                      "error": "Too Many Requests",
+                                      "message": "Too Many Requests. Retry after 60 seconds."
+                                    }
+                                    """))
             )
     })
+    @RateLimit(action = "reset-password", maxRequests = 5, timeWindow = 900)
     @PostMapping("/reset-password")
     public ResponseData<?> resetPassword(
             @Valid @RequestBody ResetPasswordRequest resetPasswordRequest) {
         this.authenticationService.resetPassword(resetPasswordRequest);
         return new ResponseData<>(HttpStatus.OK.value(), "Success");
+    }
+
+    @RateLimit(action = "google-login", maxRequests = 5, timeWindow = 60)
+    @PostMapping("/google")
+    public ResponseData<TokenResponse> loginGoogle(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) throws Exception {
+        GoogleIdToken.Payload payload = this.googleVerifier.verify(googleLoginRequest.getIdToken());
+        return new ResponseData<>(HttpStatus.OK.value(), "Login successfully", this.authenticationService.loginGoogle(payload));
     }
 }

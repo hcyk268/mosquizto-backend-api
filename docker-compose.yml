@@ -17,6 +17,22 @@ services:
       retries: 10
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: mosquizto_redis
+    hostname: redis
+    command: redis-server --rename-command FLUSHDB "" --rename-command FLUSHALL ""
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   app:
     build: .
     container_name: mosquizto_app
@@ -26,17 +42,42 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      SPRING_REDIS_HOST: redis
       SPRING_MAIL_ADDRESS: ${MAIL_ADDRESS}
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
       JWT_ACCESS_KEY: ${JWT_ACCESS_KEY}
       JWT_REFRESH_KEY: ${JWT_REFRESH_KEY}
       JWT_RESET_KEY: ${JWT_RESET_KEY}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       SERVER_URL: http://${VPS_IP:-localhost}:8080/
+      MEILI_SEARCH_HOST: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_started
     restart: unless-stopped
-
+  meilisearch:
+    image: getmeili/meilisearch:v1.7.2
+    container_name: meilisearch
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./meili_data:/meili_data
+    environment:
+      - MEILI_MASTER_KEY=${MEILI_MASTER_KEY}
+      - MEILI_ENV=development
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7700/health" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: always
 volumes:
   pg_data:
+  redis_data:
+  meilisearch:

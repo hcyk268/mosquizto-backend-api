@@ -40,6 +40,17 @@ spring:
       max-file-size: 50MB
       max-request-size: 50MB
 
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: 6379
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 10m
+      cache-null-values: false
+
 open-api:
   service:
     title: Api Service
@@ -54,5 +65,10 @@ jwt:
   refreshKey: ${JWT_REFRESH_KEY}
   resetKey: ${JWT_RESET_KEY}
 
+google:
+  client-id: ${GOOGLE_CLIENT_ID}
+meilisearch:
+  host: ${MEILI_SEARCH_HOST}
+  masterKey: ${MEILI_MASTER_KEY}
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm

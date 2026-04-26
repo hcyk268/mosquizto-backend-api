@@ -2,18 +2,25 @@ package com.mosquizto.api.service;
 
 import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.MemberResponse;
+import com.mosquizto.api.model.UserCollection;
+import com.mosquizto.api.util.AccessStatus;
 import jakarta.validation.Valid;
 
 import java.util.List;
 
 public interface UserCollectionService {
-    void shareCollection(String token, Integer collectionId, @Valid ShareCollectionRequest shareCollectionRequest);
+    void shareCollection(Integer collectionId, @Valid ShareCollectionRequest shareCollectionRequest);
 
-    List<MemberResponse> getAllMembersCollection(String token, Integer collectionId);
+    List<MemberResponse> getAllMembersCollection(Integer collectionId);
 
-    void joinCollection(String token, Integer collectionId);
+    void joinCollection(Integer collectionId);
 
-    void deleteCollectionMember(String token, Integer collectionId, Long userId);
+    void deleteCollectionMember(Integer collectionId, Long userId);
 
+    void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status);
 
+    void updateLastOpenedAt(Long userId,Integer collectionId);
+
+    List<UserCollection> getRecentOpenedCollection() ;
 }
+

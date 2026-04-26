@@ -1,8 +1,7 @@
-package com.mosquizto.api.configuration;
+package com.mosquizto.api.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mosquizto.api.dto.response.ErrorResponseException;
-import com.mosquizto.api.service.JwtService;
 import com.mosquizto.api.util.AuthorizationHeaderUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

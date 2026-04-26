@@ -14,6 +14,8 @@ public class CollectionResponse implements Serializable {
     private String description;
     private Boolean visibility;
     private Long userId;
+    private String userName ;
     private Date createdAt;
     private Date updatedAt;
+    private Integer count ;
 }

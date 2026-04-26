@@ -33,6 +33,7 @@ build/
 ### VS Code ###
 .vscode/
 meili_data/
+src/main/resources/application-seed.yml
 ### Environment / Secrets ###
 .env
 **/src/main/resources/application.yml

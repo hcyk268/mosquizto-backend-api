@@ -1,5 +1,8 @@
 package com.mosquizto.api.configuration;
 
+import com.mosquizto.api.security.JwtAuthenticationEntryPoint;
+import com.mosquizto.api.security.PreFilter;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -19,6 +22,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import static org.springframework.security.config.http.SessionCreationPolicy.STATELESS;
 
 @RequiredArgsConstructor
+@EnableMethodSecurity
 @Configuration
 public class SecurityConfig {
 
