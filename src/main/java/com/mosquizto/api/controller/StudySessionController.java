@@ -20,22 +20,26 @@ public class StudySessionController {
     private final StudySessionService studySessionService;
 
     @PostMapping("/start")
-    public ResponseData<Long> startStudySession(@Valid @RequestBody StartStudySessionRequest startStudySession) {
+    public ResponseData<Long> startStudySession(
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
+            @Valid @RequestBody StartStudySessionRequest startStudySession) {
         return new ResponseData<>(HttpStatus.OK.value(), "Start Successfully",
-                this.studySessionService.startStudySession(startStudySession));
+                this.studySessionService.startStudySession(startStudySession, idempotencyKey));
     }
 
     @PostMapping("/{sessionId}/answer")
     public ResponseData<AnswerResultResponse> answerItems(@PathVariable Long sessionId,
+                                                          @RequestHeader("Idempotency-Key") String idempotencyKey,
                                                           @Valid @RequestBody AnswerRequest answerRequest) {
         return new ResponseData<>(HttpStatus.OK.value(), "Sent Answer Successfully",
-                this.studySessionService.answerItems(sessionId, answerRequest));
+                this.studySessionService.answerItems(sessionId, answerRequest, idempotencyKey));
     }
 
     @PostMapping("/{sessionId}/complete")
-    public ResponseData<StudySessionResultResponse> completeStudySession(@PathVariable Long sessionId) {
+    public ResponseData<StudySessionResultResponse> completeStudySession(@PathVariable Long sessionId,
+                                                                         @RequestHeader("Idempotency-Key") String idempotencyKey) {
         return new ResponseData<>(HttpStatus.OK.value(), "Session completed successfully",
-                this.studySessionService.completeStudySession(sessionId));
+                this.studySessionService.completeStudySession(sessionId, idempotencyKey));
     }
 
     @GetMapping("/{sessionId}")

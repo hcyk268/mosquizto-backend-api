@@ -64,12 +64,16 @@ public class StudySessionMapper {
 
     public StudySessionAnswerDetailResponse toAnswerDetailResponse(StudySessionDetail detail) {
         CollectionItem collectionItem = detail.getCollectionItem();
+        Boolean mode = getAnswerMode(detail);
 
         return StudySessionAnswerDetailResponse.builder()
                 .detailId(detail.getId())
                 .collectionItemId(collectionItem != null ? collectionItem.getId() : null)
+                .mode(mode)
                 .term(collectionItem != null ? collectionItem.getTerm() : null)
-                .correctAnswer(collectionItem != null ? collectionItem.getDefinition() : null)
+                .definition(collectionItem != null ? collectionItem.getDefinition() : null)
+                .question(getQuestion(collectionItem, mode))
+                .correctAnswer(getCorrectAnswer(collectionItem, mode))
                 .isCorrect(detail.getIsCorrect())
                 .responseTimeMs(detail.getResponseTimeMs())
                 .build();
@@ -115,5 +119,25 @@ public class StudySessionMapper {
 
     private String getCollectionName(StudySession studySession) {
         return studySession.getCollection() != null ? studySession.getCollection().getTitle() : null;
+    }
+
+    private Boolean getAnswerMode(StudySessionDetail detail) {
+        return detail.getMode() != null ? detail.getMode() : Boolean.TRUE;
+    }
+
+    private String getQuestion(CollectionItem collectionItem, Boolean mode) {
+        if (collectionItem == null) {
+            return null;
+        }
+
+        return Boolean.FALSE.equals(mode) ? collectionItem.getDefinition() : collectionItem.getTerm();
+    }
+
+    private String getCorrectAnswer(CollectionItem collectionItem, Boolean mode) {
+        if (collectionItem == null) {
+            return null;
+        }
+
+        return Boolean.FALSE.equals(mode) ? collectionItem.getTerm() : collectionItem.getDefinition();
     }
 }

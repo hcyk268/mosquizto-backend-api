@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 public interface CollectionItemRepository extends JpaRepository<CollectionItem, Integer> {
     List<CollectionItem> findByCollectionId(Integer collectionId);
 
-    Optional<CollectionItem> findByCollectionIdAndTerm(@Param("collectionId") Integer collectionId,
-            @Param("term") String term);
+    Optional<CollectionItem> findByCollectionIdAndTerm(Integer collectionId, String term);
+
+    Optional<CollectionItem> findByCollectionIdAndDefinition(Integer collectionId, String definition);
 }

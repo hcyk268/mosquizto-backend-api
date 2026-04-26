@@ -6,6 +6,7 @@ import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -105,6 +106,30 @@ public class GlobalExceptionHandler {
         exception.setError("Invalid Payload");
         exception.setMessage(e.getMessage());
 
+        return exception;
+    }
+
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    @ResponseStatus(BAD_REQUEST)
+    public ErrorResponseException handleMissingRequestHeaderException(MissingRequestHeaderException e, WebRequest request) {
+        ErrorResponseException exception = new ErrorResponseException();
+        exception.setTimestamp(new Date());
+        exception.setStatus(BAD_REQUEST.value());
+        exception.setPath(request.getDescription(false).replace("uri=", ""));
+        exception.setError("Invalid Payload");
+        exception.setMessage(e.getHeaderName() + " header is required");
+        return exception;
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    @ResponseStatus(CONFLICT)
+    public ErrorResponseException handleConflictException(ConflictException e, WebRequest request) {
+        ErrorResponseException exception = new ErrorResponseException();
+        exception.setTimestamp(new Date());
+        exception.setStatus(CONFLICT.value());
+        exception.setPath(request.getDescription(false).replace("uri=", ""));
+        exception.setError("Conflict");
+        exception.setMessage(e.getMessage());
         return exception;
     }
 

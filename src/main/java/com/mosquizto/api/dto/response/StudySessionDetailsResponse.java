@@ -25,7 +25,10 @@ public class StudySessionDetailsResponse implements Serializable {
     public static class StudySessionAnswerDetailResponse implements Serializable {
         private Long detailId;
         private Integer collectionItemId;
+        private Boolean mode;
         private String term;
+        private String definition;
+        private String question;
         private String correctAnswer;
         private Boolean isCorrect;
         private Integer responseTimeMs;

@@ -25,15 +25,20 @@ public class StudySessionDetail extends AbstractEntity<Long> {
     @Column(name = "response_time_ms")
     private Integer responseTimeMs;
 
+    @Column(name = "answer_mode", nullable = false)
+    private Boolean mode;
+
     public static StudySessionDetail create(StudySession studySession,
                                             CollectionItem collectionItem,
                                             boolean isCorrect,
-                                            Integer responseTimeMs) {
+                                            Integer responseTimeMs,
+                                            Boolean mode) {
         return StudySessionDetail.builder()
                 .studySession(studySession)
                 .collectionItem(collectionItem)
                 .isCorrect(isCorrect)
                 .responseTimeMs(responseTimeMs)
+                .mode(mode != null ? mode : Boolean.TRUE)
                 .build();
     }
 }
