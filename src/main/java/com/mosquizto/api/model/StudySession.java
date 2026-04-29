@@ -40,6 +40,7 @@ public class StudySession extends AbstractEntity<Long> {
     @Column(name = "completed_at")
     private Date completedAt;
 
+    @Builder.Default
     @OneToMany(mappedBy = "studySession", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudySessionDetail> studySessionDetails = new ArrayList<>();
 

@@ -47,12 +47,15 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     @JoinColumn(name = "role_id")
     private Role role;
 
+    @Builder.Default
     @OneToMany(mappedBy = "createdBy", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<com.mosquizto.api.model.Collection> collections = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserCollection> userCollections = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudySession> studySessions = new ArrayList<>();
 
