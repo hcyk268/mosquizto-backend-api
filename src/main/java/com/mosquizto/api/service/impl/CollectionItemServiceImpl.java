@@ -17,12 +17,14 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class CollectionItemServiceImpl implements CollectionItemService {
 
     private final CollectionItemRepository collectionItemRepository;

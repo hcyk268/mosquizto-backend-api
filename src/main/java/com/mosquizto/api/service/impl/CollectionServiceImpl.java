@@ -18,6 +18,7 @@ import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .user(user)
                 .collection(savedCollection)
                 .role(CollectionRole.OWNER)
+                .accessStatus(AccessStatus.ENABLE)
                 .build();
 
         this.userCollectionRepository.save(userCollection);
