@@ -24,7 +24,7 @@ public class Collection extends AbstractEntity<Integer> {
     private String description ;
     private Boolean visibility ;
 
-    @ManyToOne(targetEntity = User.class, cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(targetEntity = User.class, fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User createdBy;
 
