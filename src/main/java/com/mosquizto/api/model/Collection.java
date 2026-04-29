@@ -28,9 +28,11 @@ public class Collection extends AbstractEntity<Integer> {
     @JoinColumn(name = "user_id")
     private User createdBy;
 
+    @Builder.Default
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CollectionItem> collectionItems = new ArrayList<>();
 
+    @Builder.Default
     @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudySession> studySessions = new ArrayList<>();
 

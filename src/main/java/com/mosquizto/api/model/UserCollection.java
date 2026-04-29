@@ -41,7 +41,8 @@ public class UserCollection {
     private CollectionRole role;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "access_status")
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "access_status", columnDefinition = "access_status")
     private AccessStatus accessStatus ;
 
     @Column(name = "created_at")
