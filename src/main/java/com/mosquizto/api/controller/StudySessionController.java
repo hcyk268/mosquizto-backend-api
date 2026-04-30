@@ -62,7 +62,7 @@ public class StudySessionController {
                 this.studySessionService.getStudySessionStats(collectionId));
     }
 
-    @PostMapping("/{sessionId}/comple-batch")
+    @PostMapping("/{sessionId}/complete-batch")
     @Operation()
     public ResponseData<StudySessionResultResponse> completeBatch(@PathVariable("sessionId") Long sessionId , @RequestBody
                                                                  List<StudySessionDetailRequest> list)
