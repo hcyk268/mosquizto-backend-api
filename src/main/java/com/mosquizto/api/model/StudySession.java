@@ -9,6 +9,7 @@ import java.util.Date;
 import java.util.List;
 
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -63,9 +64,10 @@ public class StudySession extends AbstractEntity<Long> {
         return this.completedAt != null;
     }
 
+
     public StudySessionDetail recordAnswer(CollectionItem collectionItem,
                                            boolean isCorrect,
-                                           Integer responseTimeMs,
+                                           Double responseTimeMs,
                                            Boolean mode) {
         ensureActive();
 

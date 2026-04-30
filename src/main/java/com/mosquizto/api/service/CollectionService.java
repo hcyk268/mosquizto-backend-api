@@ -5,6 +5,7 @@ import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.model.Collection;
 import java.awt.print.Pageable;
+import java.util.List;
 
 public interface CollectionService {
     Integer addCollection(CollectionRequest request);
@@ -17,4 +18,5 @@ public interface CollectionService {
     // Tương tác bên ngoài , ko thông qua user
     PageResponse<CollectionResponse> getAllPublicCollection(int page, int size);
 
+    List<CollectionResponse> getRecentOpenedCollection() ;
 }

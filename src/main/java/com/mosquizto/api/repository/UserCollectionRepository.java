@@ -30,4 +30,10 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
 
     @Query("select uc from UserCollection uc where uc.accessStatus = :accessStatus AND uc.collection.id = :collectionId")
     List<UserCollection> findUserByAccessStatus(@Param("accessStatus")AccessStatus accessStatus, @Param("collectionId") Integer collectionId);
+
+    // Lấy Top 10 bộ thẻ mở gần đây nhất của User
+    List<UserCollection> findTop10ByUserIdOrderByLastOpenedAtDesc(Long userId);
+
+    // Tìm kiếm chính xác 1 record theo cặp ID
+    Optional<UserCollection> findByUserIdAndCollectionId(Long userId, Integer collectionId);
 }

@@ -31,6 +31,6 @@ public class StudySessionDetailsResponse implements Serializable {
         private String question;
         private String correctAnswer;
         private Boolean isCorrect;
-        private Integer responseTimeMs;
+        private Double responseTimeMs;
     }
 }

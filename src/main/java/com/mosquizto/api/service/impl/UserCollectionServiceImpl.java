@@ -9,7 +9,6 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
-import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
@@ -18,10 +17,12 @@ import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -124,12 +125,15 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         boolean isJoinedCollection = this.userCollectionRepository.existsById(id);
 
         if (!isJoinedCollection) {
+            CollectionRole collectionRole = (collection.getCreatedBy().getId().equals(user.getId())) ? CollectionRole.OWNER : CollectionRole.VIEWER ;
             UserCollection userCollection = UserCollection.builder()
                     .id(id)
                     .user(user)
                     .collection(collection)
                     .role(CollectionRole.VIEWER)
                     .accessStatus(AccessStatus.PENDING)
+                    .role(collectionRole)
+                    .lastOpenedAt(new Date())
                     .build();
 
             this.userCollectionRepository.save(userCollection);
@@ -182,5 +186,22 @@ public class UserCollectionServiceImpl implements UserCollectionService {
             request.setAccessStatus(AccessStatus.ENABLE);
             userCollectionRepository.save(request);
         }
+    }
+
+    @Override
+    @Transactional
+    @Async
+    public void updateLastOpenedAt(Long userId , Integer collectionId) {
+        userCollectionRepository.findByUserIdAndCollectionId(userId, collectionId)
+                .ifPresent(userCollection -> {
+                    userCollection.setLastOpenedAt(new Date());
+                    userCollectionRepository.save(userCollection);
+                });
+    }
+
+    @Override
+    public List<UserCollection> getRecentOpenedCollection() {
+        Long userId = currentUserProvider.getCurrentUser().getId();
+        return userCollectionRepository.findTop10ByUserIdOrderByLastOpenedAtDesc(userId);
     }
 }

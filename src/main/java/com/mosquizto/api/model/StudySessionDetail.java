@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -23,7 +24,7 @@ public class StudySessionDetail extends AbstractEntity<Long> {
     private Boolean isCorrect;
 
     @Column(name = "response_time_ms")
-    private Integer responseTimeMs;
+    private Double responseTimeMs;
 
     @Column(name = "answer_mode", nullable = false)
     private Boolean mode;
@@ -31,7 +32,7 @@ public class StudySessionDetail extends AbstractEntity<Long> {
     public static StudySessionDetail create(StudySession studySession,
                                             CollectionItem collectionItem,
                                             boolean isCorrect,
-                                            Integer responseTimeMs,
+                                            Double responseTimeMs,
                                             Boolean mode) {
         return StudySessionDetail.builder()
                 .studySession(studySession)

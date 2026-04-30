@@ -17,4 +17,5 @@ public class CollectionRequest implements Serializable {
 
     @NotNull(message = "visibility must be not null")
     private Boolean visibility;
+
 }

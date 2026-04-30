@@ -19,6 +19,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.awt.print.Pageable;
+import java.util.List;
 
 @RestController
 @RequestMapping("/collection")
@@ -86,5 +87,11 @@ public class CollectionController {
     {
         collectionSearchService.ReindexAll();
         return new ResponseData<>(HttpStatus.OK.value(),"success");
+    }
+    @GetMapping("/recent-opened")
+    @Operation(summary = "get recent opened collection", security = @SecurityRequirement(name = "bearerAuth"))
+    public ResponseData<List<CollectionResponse>> getRecentOpened()
+    {
+        return new ResponseData<>(HttpStatus.OK.value(),"sucess",this.collectionService.getRecentOpenedCollection());
     }
 }

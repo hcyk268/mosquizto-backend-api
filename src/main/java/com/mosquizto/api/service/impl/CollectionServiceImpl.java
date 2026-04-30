@@ -17,12 +17,18 @@ import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +41,7 @@ public class CollectionServiceImpl implements CollectionService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionMapper collectionMapper;
     private final UserCollectionRepository userCollectionRepository;
+    private  final UserCollectionService userCollectionService ;
     private final CollectionSearchService collectionSearchService ;
     @Override
     @Transactional // Đảm bảo 2 save thành công
@@ -57,6 +64,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .user(user)
                 .collection(savedCollection)
                 .role(CollectionRole.OWNER)
+                .accessStatus(AccessStatus.ENABLE)
                 .build();
 
         this.userCollectionRepository.save(userCollection);
@@ -89,7 +97,7 @@ public class CollectionServiceImpl implements CollectionService {
     public CollectionResponse getDetail(Integer id) {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
-
+        userCollectionService.updateLastOpenedAt(this.currentUserProvider.getCurrentUser().getId(), id);
         return this.collectionMapper.toResponse(collection);
     }
 
@@ -153,6 +161,13 @@ public class CollectionServiceImpl implements CollectionService {
                 .build();
     }
 
-
-
+    @Override
+    public List<CollectionResponse> getRecentOpenedCollection() {
+        var userId = currentUserProvider.getCurrentUser().getId();
+        return userCollectionRepository.findTop10ByUserIdOrderByLastOpenedAtDesc(userId)
+                .stream()
+                .filter(uc -> uc.getLastOpenedAt() != null) // Lọc an toàn
+                .map(uc -> collectionMapper.toResponse(uc.getCollection()))
+                .toList();
+    }
 }

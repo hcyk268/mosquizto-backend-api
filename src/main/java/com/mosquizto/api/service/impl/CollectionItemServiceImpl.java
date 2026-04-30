@@ -14,14 +14,17 @@ import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionItemService;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 @AllArgsConstructor
+@Slf4j
 public class CollectionItemServiceImpl implements CollectionItemService {
 
     private final CollectionItemRepository collectionItemRepository;
@@ -29,6 +32,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemMapper collectionItemMapper;
     private final UserCollectionRepository userCollectionRepository;
+    private final UserCollectionService userCollectionService ;
     private final CollectionSearchService collectionSearchService ;
     @Override
     public CollectionItemResponse addNewItem(CollectionItemRequest request) {
@@ -55,6 +59,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         }
 
         var items = this.collectionItemRepository.findByCollectionId(collectionId);
+        var userId = this.currentUserProvider.getCurrentUser().getId() ;
+        this.userCollectionService.updateLastOpenedAt(userId,collectionId);
         return items.stream()
                 .map(this.collectionItemMapper::toResponse)
                 .toList();

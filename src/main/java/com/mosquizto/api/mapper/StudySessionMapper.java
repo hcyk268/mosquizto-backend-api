@@ -36,6 +36,8 @@ public class StudySessionMapper {
                 .collectionName(getCollectionName(studySession))
                 .totalScore(studySession.getTotalScore())
                 .totalCorrect(studySession.getTotalCorrect())
+                .collectionId(studySession.getCollection().getId())
+                .collectionCount(studySession.getCollection().getCollectionItems().size())
                 .totalWrong(studySession.getTotalWrong())
                 .startedAt(studySession.getStartedAt())
                 .completedAt(studySession.getCompletedAt())

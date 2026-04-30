@@ -18,5 +18,9 @@ public interface UserCollectionService {
     void deleteCollectionMember(Integer collectionId, Long userId);
 
     void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status);
+
+    void updateLastOpenedAt(Long userId,Integer collectionId);
+
+    List<UserCollection> getRecentOpenedCollection() ;
 }
 

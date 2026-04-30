@@ -11,6 +11,8 @@ import java.util.Date;
 public class StudySessionResponse implements Serializable {
     private Long sessionId;
     private String collectionName;
+    private Integer collectionId ;
+    private Integer collectionCount ;
     private Integer totalScore;
     private Integer totalCorrect;
     private Integer totalWrong;
