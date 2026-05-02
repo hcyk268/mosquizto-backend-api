@@ -26,7 +26,7 @@ public class CollectionItem extends AbstractEntity<Integer> {
     @Column(name = "order_index")
     private Integer orderIndex;
 
-    @ManyToOne(targetEntity = Collection.class , fetch = FetchType.LAZY , cascade = CascadeType.ALL)
+    @ManyToOne(targetEntity = Collection.class , fetch = FetchType.LAZY)
     @JoinColumn(name = "collection_id")
     private Collection collection ;
 

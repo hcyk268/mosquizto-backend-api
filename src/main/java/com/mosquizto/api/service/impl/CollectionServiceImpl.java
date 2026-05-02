@@ -7,11 +7,9 @@ import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
-import com.mosquizto.api.model.CollectionDocument;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
-import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionSearchService;
@@ -20,18 +18,13 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 
 @Service
 @RequiredArgsConstructor
@@ -169,5 +162,19 @@ public class CollectionServiceImpl implements CollectionService {
                 .filter(uc -> uc.getLastOpenedAt() != null) // Lọc an toàn
                 .map(uc -> collectionMapper.toResponse(uc.getCollection()))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAccessible(Integer collectionId) {
+        User user = this.currentUserProvider.getCurrentUser();
+        Collection collection = this.collectionRepository.findById(collectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
+
+        if (collection.getCreatedBy() != null && user.getId().equals(collection.getCreatedBy().getId())) {
+            return true;
+        }
+
+        return this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collectionId)
+                .isPresent();
     }
 }
