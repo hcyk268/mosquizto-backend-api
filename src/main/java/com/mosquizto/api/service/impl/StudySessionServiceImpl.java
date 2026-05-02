@@ -174,7 +174,7 @@ public class StudySessionServiceImpl implements StudySessionService {
 
     @Override
     @Transactional
-    public StudySessionResultResponse completeBatch(Long sessionId, List<StudySessionDetailRequest> detailRequests) {
+    public StudySessionResultResponse completeBatch(Long sessionId, List<StudySessionDetailRequest> detailRequests,boolean isFullTest) {
 
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
@@ -197,7 +197,7 @@ public class StudySessionServiceImpl implements StudySessionService {
             );
         }
 
-        studySession.complete(new Date());
+        studySession.complete((isFullTest) ? new Date() : null);
 
         studySessionRepository.save(studySession);
 
@@ -216,7 +216,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         {
             responses.add(this.studySessionMapper.toResponse(ss)) ;
         });
-        return List.of();
+        return responses;
     }
     private Long doStartStudySession(StartStudySessionRequest startStudySession, User user) {
         Collection collection = this.collectionService.getById(startStudySession.getCollectionId());

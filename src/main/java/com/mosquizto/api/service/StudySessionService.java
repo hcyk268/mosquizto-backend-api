@@ -22,7 +22,7 @@ public interface StudySessionService {
 
     StudySessionStatsResponse getStudySessionStats(Integer collectionId);
 
-    StudySessionResultResponse completeBatch(Long sessionId,List<StudySessionDetailRequest> detailRequests);
+    StudySessionResultResponse completeBatch(Long sessionId,List<StudySessionDetailRequest> detailRequests, boolean isFullTest);
 
     List<StudySessionResponse> getJumpBackInStudySession();
 }

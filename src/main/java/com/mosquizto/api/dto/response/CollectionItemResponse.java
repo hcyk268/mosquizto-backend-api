@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 @Data
 public class CollectionItemResponse implements Serializable {
+    private Integer id  ;
     private String term ;
     private String definition ;
     private String imageUrl ;

@@ -15,11 +15,13 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
     Page<StudySession> findAllByUserId(Long userId, Pageable pageable);
     java.util.List<StudySession> findAllByUserIdAndCollectionId(Long userId, Integer collectionId);
 
-    @Query("SELECT s, MAX(s.startedAt) \n" +
-            "FROM StudySession s\n" +
-            "WHERE s.user.id = :userId AND s.completedAt IS NULL\n" +
-            "GROUP BY s.id\n" +
-            "ORDER BY MAX(s.startedAt) DESC")
+    @Query("SELECT s FROM StudySession s " +
+            "WHERE s.id IN (" +
+            "  SELECT MAX(s2.id) FROM StudySession s2 " +
+            "  WHERE s2.user.id = :userId  " +
+            "  GROUP BY s2.collection.id" +
+            ") AND s.completedAt is null " +
+            "ORDER BY s.startedAt DESC")
     List<StudySession> getJumpBackInStudySession(@Param("userId") Long userId) ;
 }
 

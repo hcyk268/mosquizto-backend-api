@@ -32,6 +32,7 @@ public class CollectionItemMapper {
 
     public CollectionItemResponse toResponse(CollectionItem item) {
         return CollectionItemResponse.builder()
+                .id(item.getId())
                 .term(item.getTerm())
                 .definition(item.getDefinition())
                 .imageUrl(item.getImageUrl())
