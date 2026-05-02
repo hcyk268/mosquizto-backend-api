@@ -1,0 +1,2 @@
+ALTER TABLE tbl_user_collection
+    ADD COLUMN IF NOT EXISTS last_opened_at TIMESTAMP WITHOUT TIME ZONE;

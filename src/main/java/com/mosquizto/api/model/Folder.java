@@ -27,7 +27,7 @@ public class Folder extends AbstractEntity<Long> {
     private User createdBy;
 
     @Builder.Default
-    @OneToMany(mappedBy = "folder", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "folder", fetch = FetchType.LAZY)
     private List<FolderCollection> folderCollections = new ArrayList<>();
 
     public boolean isOwnedBy(String username) {
