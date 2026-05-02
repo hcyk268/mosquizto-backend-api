@@ -19,4 +19,6 @@ public interface CollectionService {
     PageResponse<CollectionResponse> getAllPublicCollection(int page, int size);
 
     List<CollectionResponse> getRecentOpenedCollection() ;
+
+    boolean isAccessible(Integer collectionId);
 }
