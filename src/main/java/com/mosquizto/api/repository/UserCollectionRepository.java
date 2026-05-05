@@ -17,14 +17,27 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
 
     @Query("select uc from UserCollection uc join fetch uc.user " +
             "where uc.collection.id = :collectionId " +
-            "and uc.accessStatus = com.mosquizto.api.util.AccessStatus.ENABLE")
-    List<UserCollection> findAllActiveMembersByCollectionId(@Param("collectionId") Integer collectionId);
+            "and uc.accessStatus = :accessStatus")
+    List<UserCollection> findAllMembersByCollectionIdAndAccessStatus(
+            @Param("collectionId") Integer collectionId,
+            @Param("accessStatus") AccessStatus accessStatus);
+
+    default List<UserCollection> findAllActiveMembersByCollectionId(Integer collectionId) {
+        return findAllMembersByCollectionIdAndAccessStatus(collectionId, AccessStatus.ENABLE);
+    }
 
     @Query("select uc.role from UserCollection uc " +
             "where uc.user.id = :userId " +
             "and uc.collection.id = :collectionId " +
-            "and uc.accessStatus = com.mosquizto.api.util.AccessStatus.ENABLE")
-    Optional<CollectionRole> getActiveRoleInUserCollection(@Param("userId") Long userId, @Param("collectionId") Integer collectionId);
+            "and uc.accessStatus = :accessStatus")
+    Optional<CollectionRole> getRoleInUserCollectionByAccessStatus(
+            @Param("userId") Long userId,
+            @Param("collectionId") Integer collectionId,
+            @Param("accessStatus") AccessStatus accessStatus);
+
+    default Optional<CollectionRole> getActiveRoleInUserCollection(Long userId, Integer collectionId) {
+        return getRoleInUserCollectionByAccessStatus(userId, collectionId, AccessStatus.ENABLE);
+    }
 
     @Query("select uc from UserCollection uc where uc.accessStatus = :accessStatus AND uc.collection.id = :collectionId")
     List<UserCollection> findUserByAccessStatus(@Param("accessStatus")AccessStatus accessStatus, @Param("collectionId") Integer collectionId);
