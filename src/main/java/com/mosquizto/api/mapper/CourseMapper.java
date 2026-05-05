@@ -1,9 +1,12 @@
 package com.mosquizto.api.mapper;
 
 import com.mosquizto.api.dto.response.CollectionSummaryResponse;
+import com.mosquizto.api.dto.response.CourseMemberResponse;
 import com.mosquizto.api.dto.response.CourseResponse;
+import com.mosquizto.api.dto.response.JoinResponse;
 import com.mosquizto.api.model.Course;
 import com.mosquizto.api.model.CourseCollection;
+import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCourse;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CourseRole;
@@ -30,6 +33,32 @@ public class CourseMapper {
                 .id(courseCollection.getCollection().getId())
                 .title(courseCollection.getCollection().getTitle())
                 .orderIndex(courseCollection.getOrderIndex())
+                .build();
+    }
+
+    public JoinResponse toJoinResponse(UserCourse userCourse) {
+        Course course = userCourse.getCourse();
+
+        return JoinResponse.builder()
+                .id(userCourse.getId())
+                .userId(userCourse.getUser().getId())
+                .courseId(course.getId())
+                .titleCourse(course.getTitle())
+                .status(userCourse.getAccessStatus())
+                .role(userCourse.getRole())
+                .build();
+    }
+
+    public CourseMemberResponse toCourseMemberResponse(UserCourse userCourse) {
+        User user = userCourse.getUser();
+
+        return CourseMemberResponse.builder()
+                .userId(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .role(userCourse.getRole())
+                .status(userCourse.getAccessStatus())
+                .joinedAt(userCourse.getJoinedAt())
                 .build();
     }
 

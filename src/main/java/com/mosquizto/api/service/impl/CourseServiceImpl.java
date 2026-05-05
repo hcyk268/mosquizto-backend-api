@@ -3,7 +3,9 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.CreateCourseRequest;
 import com.mosquizto.api.dto.request.UpdateCourseRequest;
 import com.mosquizto.api.dto.response.CollectionSummaryResponse;
+import com.mosquizto.api.dto.response.CourseMemberResponse;
 import com.mosquizto.api.dto.response.CourseResponse;
+import com.mosquizto.api.dto.response.JoinResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
@@ -24,6 +26,7 @@ import com.mosquizto.api.util.CourseRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -224,6 +227,121 @@ public class CourseServiceImpl implements CourseService {
         return this.getOrderedEnabledCollections(courseId);
     }
 
+    @Override
+    @Transactional
+    public JoinResponse joinCourse(Long courseId) {
+        User user = this.currentUserProvider.getCurrentUser();
+        Course course = this.getCourseById(courseId);
+        AccessStatus joinStatus = course.isVisible() ? AccessStatus.ENABLE : AccessStatus.PENDING;
+
+        UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
+
+        if (currentUserCourse != null) {
+            if (currentUserCourse.isEnabled()) {
+                throw new InvalidDataException("You have already joined this course");
+            }
+
+            if (currentUserCourse.isPending()) {
+                throw new InvalidDataException("Your join request is pending");
+            }
+
+            if (currentUserCourse.isDenied()) {
+                throw new InvalidDataException("You are denied");
+            }
+
+        } else {
+            currentUserCourse = UserCourse.create(user, course, CourseRole.STUDENT, joinStatus);
+        }
+
+        UserCourse savedUserCourse = this.userCourseRepository.save(currentUserCourse);
+
+        return this.courseMapper.toJoinResponse(savedUserCourse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<JoinResponse> getPendingJoinRequests(Long courseId, int page, int size) {
+        User user = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse userCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
+
+        this.validateTeacher(userCourse, "You can not access pending join list");
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
+        Page<UserCourse> pendingJoins = this.userCourseRepository.findAllWithStatus(courseId, AccessStatus.PENDING, pageable);
+
+        List<JoinResponse> joinResponses = pendingJoins.getContent().stream()
+                .map(this.courseMapper::toJoinResponse)
+                .toList();
+
+        return this.toPageResponse(page, size, pendingJoins, joinResponses);
+    }
+
+    @Override
+    @Transactional
+    public void approveJoinRequest(Long courseId, Long userId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
+
+        this.validateTeacher(currentUserCourse, "You can not approve join request");
+
+        UserCourse joinRequest = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
+
+        if (!joinRequest.isPending()) {
+            throw new InvalidDataException("Join request is not pending");
+        }
+
+        joinRequest.approve();
+        this.userCourseRepository.save(joinRequest);
+    }
+
+    @Override
+    @Transactional
+    public void removeStudentFromCourse(Long courseId, Long userId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
+
+        this.validateTeacher(currentUserCourse, "You can not remove student from course");
+
+        UserCourse targetUserCourse = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
+                .orElseThrow(() -> new ResourceNotFoundException("Student not found in course"));
+
+        if (targetUserCourse.isTeacher()) {
+            throw new InvalidDataException("You can not remove teacher from course");
+        }
+
+        if (!targetUserCourse.isStudent() || !targetUserCourse.isEnabled()) {
+            throw new InvalidDataException("Student is not an active course member");
+        }
+
+        targetUserCourse.deny();
+        this.userCourseRepository.save(targetUserCourse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<CourseMemberResponse> getCourseMembers(Long courseId, int page, int size) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
+
+        this.validateTeacher(currentUserCourse, "You can not access course members");
+
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.ASC, "role")
+                .and(Sort.by(Sort.Direction.ASC, "user.username")));
+        Page<UserCourse> memberPage = this.userCourseRepository.findAllWithStatus(courseId, AccessStatus.ENABLE, pageable);
+
+        List<CourseMemberResponse> members = memberPage.getContent().stream()
+                .map(this.courseMapper::toCourseMemberResponse)
+                .toList();
+
+        return this.toPageResponse(page, size, memberPage, members);
+    }
+
     private Course getCourseById(Long courseId) {
         return this.courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
@@ -250,11 +368,11 @@ public class CourseServiceImpl implements CourseService {
                 .toList();
     }
 
-    private PageResponse<CourseResponse> toPageResponse(int page,
-                                                        int size,
-                                                        Page<?> coursePage,
-                                                        List<CourseResponse> items) {
-        return PageResponse.<CourseResponse>builder()
+    private <T> PageResponse<T> toPageResponse(int page,
+                                               int size,
+                                               Page<?> coursePage,
+                                               List<T> items) {
+        return PageResponse.<T>builder()
                 .page(page)
                 .size(size)
                 .totalElements(coursePage.getTotalElements())
