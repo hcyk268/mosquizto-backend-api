@@ -1,6 +1,7 @@
 package com.mosquizto.api.repository;
 
 import com.mosquizto.api.model.Collection;
+import com.mosquizto.api.util.AccessStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,8 +19,15 @@ public interface CollectionRepository extends JpaRepository<Collection, Integer>
     @Query("SELECT DISTINCT c FROM Collection c " +
             "LEFT JOIN UserCollection uc ON c.id = uc.collection.id " +
             "WHERE c.createdBy.id = :userId " +
-            "OR (uc.user.id = :userId AND uc.accessStatus = com.mosquizto.api.util.AccessStatus.ENABLE)")
-    Page<Collection> findAllAccessibleCollections(@Param("userId") Long userId, Pageable pageable);
+            "OR (uc.user.id = :userId AND uc.accessStatus = :accessStatus)")
+    Page<Collection> findAllAccessibleCollectionsByAccessStatus(
+            @Param("userId") Long userId,
+            @Param("accessStatus") AccessStatus accessStatus,
+            Pageable pageable);
+
+    default Page<Collection> findAllAccessibleCollections(Long userId, Pageable pageable) {
+        return findAllAccessibleCollectionsByAccessStatus(userId, AccessStatus.ENABLE, pageable);
+    }
 
     @Query("SELECT c FROM Collection c WHERE c.visibility = true")
     Page<Collection> findPublicCollections(Pageable pageable);
