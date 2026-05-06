@@ -152,13 +152,15 @@ public class CourseController {
 
     @Operation(summary = "Get best learnt collections in course", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{courseId}/stats/best-collections-learnt")
-    public ResponseData<Object> getBestLearntCollections(@PathVariable Long courseId) {
-        return new ResponseData<>(HttpStatus.NOT_IMPLEMENTED.value(), "TODO: Get best learnt collections");
+    public ResponseData<BestLearntCollectionResponse> getBestLearntCollections(@PathVariable Long courseId) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Get best learnt collection successfully",
+                this.courseService.getBestLearntCollections(courseId));
     }
 
     @Operation(summary = "Count study sessions in course", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/{courseId}/stats/study-session-count")
-    public ResponseData<Object> countStudySessionsInCourse(@PathVariable Long courseId) {
-        return new ResponseData<>(HttpStatus.NOT_IMPLEMENTED.value(), "TODO: Count study sessions in course");
+    public ResponseData<Long> countStudySessionsInCourse(@PathVariable Long courseId) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Count study sessions in course successfully",
+                this.courseService.countStudySessionsInCourse(courseId));
     }
 }

@@ -1,6 +1,7 @@
 package com.mosquizto.api.repository;
 
 import com.mosquizto.api.model.StudySession;
+import com.mosquizto.api.util.AccessStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,6 +24,31 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
             ") AND s.completedAt is null " +
             "ORDER BY s.startedAt DESC")
     List<StudySession> getJumpBackInStudySession(@Param("userId") Long userId) ;
+
+    @Query("SELECT s FROM StudySession s " +
+            "JOIN FETCH s.collection c, UserCourse uc, CourseCollection cc " +
+            "WHERE uc.user = s.user " +
+            "AND uc.course.id = :courseId " +
+            "AND uc.accessStatus = :memberStatus " +
+            "AND cc.collection = c " +
+            "AND cc.course.id = :courseId " +
+            "AND cc.accessStatus = :courseCollectionStatus " +
+            "AND s.completedAt IS NOT NULL")
+    List<StudySession> findCompletedCourseStudySessions(@Param("courseId") Long courseId,
+                                                        @Param("memberStatus") AccessStatus memberStatus,
+                                                        @Param("courseCollectionStatus") AccessStatus courseCollectionStatus);
+
+    @Query("SELECT COUNT(s) FROM StudySession s, UserCourse uc, CourseCollection cc " +
+            "WHERE uc.user = s.user " +
+            "AND uc.course.id = :courseId " +
+            "AND uc.accessStatus = :memberStatus " +
+            "AND cc.collection = s.collection " +
+            "AND cc.course.id = :courseId " +
+            "AND cc.accessStatus = :courseCollectionStatus " +
+            "AND s.completedAt IS NOT NULL")
+    Long countCompletedCourseStudySessions(@Param("courseId") Long courseId,
+                                           @Param("memberStatus") AccessStatus memberStatus,
+                                           @Param("courseCollectionStatus") AccessStatus courseCollectionStatus);
 }
 
 

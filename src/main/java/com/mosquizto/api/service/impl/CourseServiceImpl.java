@@ -2,6 +2,7 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CreateCourseRequest;
 import com.mosquizto.api.dto.request.UpdateCourseRequest;
+import com.mosquizto.api.dto.response.BestLearntCollectionResponse;
 import com.mosquizto.api.dto.response.CollectionSummaryResponse;
 import com.mosquizto.api.dto.response.CourseMemberResponse;
 import com.mosquizto.api.dto.response.CourseResponse;
@@ -13,10 +14,12 @@ import com.mosquizto.api.mapper.CourseMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.Course;
 import com.mosquizto.api.model.CourseCollection;
+import com.mosquizto.api.model.StudySession;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCourse;
 import com.mosquizto.api.repository.CourseCollectionRepository;
 import com.mosquizto.api.repository.CourseRepository;
+import com.mosquizto.api.repository.StudySessionRepository;
 import com.mosquizto.api.repository.UserCourseRepository;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CourseService;
@@ -32,8 +35,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -43,6 +49,7 @@ public class CourseServiceImpl implements CourseService {
     private final CourseRepository courseRepository;
     private final CourseCollectionRepository courseCollectionRepository;
     private final UserCourseRepository userCourseRepository;
+    private final StudySessionRepository studySessionRepository;
     private final CollectionService collectionService;
     private final CourseMapper courseMapper;
 
@@ -342,6 +349,58 @@ public class CourseServiceImpl implements CourseService {
         return this.toPageResponse(page, size, memberPage, members);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public BestLearntCollectionResponse getBestLearntCollections(Long courseId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId)
+                .orElse(null);
+
+        if (!this.isEnabledMember(currentUserCourse)) {
+            throw new InvalidDataException("Only course members can access course stats");
+        }
+
+        List<StudySession> completedSessions = this.studySessionRepository.findCompletedCourseStudySessions(
+                courseId,
+                AccessStatus.ENABLE,
+                AccessStatus.ENABLE);
+
+        Map<Integer, List<StudySession>> sessionsByCollection = completedSessions.stream()
+                .filter(session ->
+                        session.getCollection() != null && session.getCollection().getId() != null)
+                .collect(Collectors.groupingBy(session -> session.getCollection().getId()));
+
+        return sessionsByCollection.values().stream()
+                .map(this::toBestLearntCollectionResponse)
+                .sorted(Comparator.comparing(
+                                BestLearntCollectionResponse::getStudySessionCount,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(
+                                BestLearntCollectionResponse::getCollectionName,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .findFirst()
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Long countStudySessionsInCourse(Long courseId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        this.getCourseById(courseId);
+        UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId)
+                .orElse(null);
+
+        if (!this.isEnabledMember(currentUserCourse)) {
+            throw new InvalidDataException("Only course members can access course stats");
+        }
+
+        return this.studySessionRepository.countCompletedCourseStudySessions(
+                courseId,
+                AccessStatus.ENABLE,
+                AccessStatus.ENABLE);
+    }
+
     private Course getCourseById(Long courseId) {
         return this.courseRepository.findById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
@@ -366,6 +425,16 @@ public class CourseServiceImpl implements CourseService {
                 .stream()
                 .map(this.courseMapper::toCollectionSummaryResponse)
                 .toList();
+    }
+
+    private BestLearntCollectionResponse toBestLearntCollectionResponse(List<StudySession> sessions) {
+        Collection collection = sessions.get(0).getCollection();
+
+        return BestLearntCollectionResponse.builder()
+                .collectionId(collection.getId())
+                .collectionName(collection.getTitle())
+                .studySessionCount((long) sessions.size())
+                .build();
     }
 
     private <T> PageResponse<T> toPageResponse(int page,
