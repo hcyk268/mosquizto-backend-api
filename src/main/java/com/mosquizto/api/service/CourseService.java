@@ -2,6 +2,7 @@ package com.mosquizto.api.service;
 
 import com.mosquizto.api.dto.request.CreateCourseRequest;
 import com.mosquizto.api.dto.request.UpdateCourseRequest;
+import com.mosquizto.api.dto.response.BestLearntCollectionResponse;
 import com.mosquizto.api.dto.response.CollectionSummaryResponse;
 import com.mosquizto.api.dto.response.CourseMemberResponse;
 import com.mosquizto.api.dto.response.CourseResponse;
@@ -40,4 +41,8 @@ public interface CourseService {
     void removeStudentFromCourse(Long courseId, Long userId);
 
     PageResponse<CourseMemberResponse> getCourseMembers(Long courseId, @Min(1) int page, @Min(1) int size);
+
+    BestLearntCollectionResponse getBestLearntCollections(Long courseId);
+
+    Long countStudySessionsInCourse(Long courseId);
 }
