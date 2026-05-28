@@ -61,16 +61,32 @@ public class StudySession extends AbstractEntity<Long> {
                 && this.user.getUsername().equals(username);
     }
 
+    public boolean canBeViewedBy(String username) {
+        return isOwnedBy(username);
+    }
+
+    public boolean canBeAnsweredBy(String username) {
+        return isOwnedBy(username) && !isCompleted();
+    }
+
+    public boolean canBeCompletedBy(String username) {
+        return isOwnedBy(username) && !isCompleted();
+    }
+
     public boolean isCompleted() {
         return this.completedAt != null;
     }
 
+    public boolean accepts(CollectionItem collectionItem) {
+        return collectionItem != null && collectionItem.belongsTo(this.collection);
+    }
 
     public StudySessionDetail recordAnswer(CollectionItem collectionItem,
                                            boolean isCorrect,
                                            Double responseTimeMs,
                                            Boolean mode) {
         ensureActive();
+        ensureAccepted(collectionItem);
 
         StudySessionDetail detail = StudySessionDetail.create(this, collectionItem, isCorrect, responseTimeMs, mode);
 
@@ -89,9 +105,23 @@ public class StudySession extends AbstractEntity<Long> {
         return detail;
     }
 
+    public StudySessionDetail recordAnswer(CollectionItem collectionItem,
+                                           String submittedTerm,
+                                           String submittedDefinition,
+                                           Double responseTimeMs,
+                                           Boolean mode) {
+        ensureAccepted(collectionItem);
+        boolean isCorrect = collectionItem.matchesAnswer(mode, submittedTerm, submittedDefinition);
+        return recordAnswer(collectionItem, isCorrect, responseTimeMs, mode);
+    }
+
     public void complete(Date completedAt) {
         ensureActive();
         this.completedAt = completedAt;
+    }
+
+    public void completeNow() {
+        complete(new Date());
     }
 
     public double calculateAccuracyRate() {
@@ -117,6 +147,12 @@ public class StudySession extends AbstractEntity<Long> {
     private void ensureActive() {
         if (isCompleted()) {
             throw new InvalidDataException("This study session has already been completed");
+        }
+    }
+
+    private void ensureAccepted(CollectionItem collectionItem) {
+        if (!accepts(collectionItem)) {
+            throw new InvalidDataException("Invalid collection item in this session");
         }
     }
 
