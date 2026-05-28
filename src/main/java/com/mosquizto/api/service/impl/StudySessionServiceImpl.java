@@ -179,15 +179,18 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-//        String username = this.currentUserProvider.getCurrentUsername();
-//        if (!studySession.isOwnedBy(username)) {
-//            throw new InvalidDataException("You do not have permission to complete this session");
-//        }
+        String username = this.currentUserProvider.getCurrentUsername();
+        if (!studySession.isOwnedBy(username)) {
+            throw new InvalidDataException("You do not have permission to complete this session");
+        }
 
-        // 2. Xử lý từng câu trả lời từ client gửi lên
         for (StudySessionDetailRequest request : detailRequests) {
             CollectionItem ci = collectionItemRepository.findById(request.getItemId())
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + request.getItemId()));
+
+            if (!ci.getCollection().getId().equals(studySession.getCollection().getId())) {
+                throw new InvalidDataException("Invalid collection item in this session");
+            }
 
             studySession.recordAnswer(
                     ci,

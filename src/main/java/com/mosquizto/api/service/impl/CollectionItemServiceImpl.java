@@ -19,6 +19,7 @@ import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -83,17 +84,25 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     }
 
     @Override
+    @Transactional
     public CollectionItemResponse updateCollectionItem(Integer id, CollectionItemRequest request) {
-        var collection = findCollectionById(request.getCollectionId());
+        CollectionItem targetItem = getItemById(id);
+        Collection collection = targetItem.getCollection();
+
+        if (!collection.getId().equals(request.getCollectionId())) {
+            throw new InvalidDataException("Item does not belong to this collection");
+        }
 
         CollectionRole role = getUserRoleInCollection(collection.getId());
         if (role == null || role == CollectionRole.VIEWER) {
             throw new InvalidDataException("Only editor and owner can edit items in this collection");
         }
 
-        var targetItem = getItemById(id);
         this.collectionItemMapper.updateEntity(targetItem, request);
-        return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(targetItem));
+        CollectionItem savedItem = collectionItemRepository.save(targetItem);
+        collectionSearchService.upsert(collection);
+
+        return this.collectionItemMapper.toResponse(savedItem);
     }
 
     private Collection findCollectionById(Integer collectionId) {

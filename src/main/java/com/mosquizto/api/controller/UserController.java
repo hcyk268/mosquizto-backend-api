@@ -101,6 +101,8 @@ public class UserController {
                                     """))
             )
     })
+
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/add")
     public ResponseData<Long> addUser(@Valid @RequestBody AddUserRequest request) {
         long userId = this.userService.addUser(request);
