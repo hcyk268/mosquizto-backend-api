@@ -12,10 +12,9 @@ import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
-import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.AccessStatus;
-import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -43,16 +42,12 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        if (!collection.getCreatedBy().getUsername().equals(usernameOwner)) {
+        if (!collection.isOwnedBy(usernameOwner)) {
             throw new InvalidDataException("You do not have permission to share this collection");
         }
 
         if (usernameOwner.equals(shareCollectionRequest.getUsername())) {
             throw new InvalidDataException("You cannot share this collection to yourself");
-        }
-
-        if (shareCollectionRequest.getRole() == CollectionRole.OWNER) {
-            throw new InvalidDataException("Role OWNER is reserved for the collection creator");
         }
 
         User sharedUser = this.userService.getByUsername(shareCollectionRequest.getUsername());
@@ -62,12 +57,10 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .build();
 
         UserCollection userCollection = this.userCollectionRepository.findById(id)
-                .orElseGet(() -> UserCollection.builder()
-                        .id(id).user(sharedUser).collection(collection)
-                        .accessStatus(AccessStatus.PENDING) // Đợi người kia đồng ý
-                        .build());
+                .orElseGet(() -> UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole()));
 
-        userCollection.setRole(shareCollectionRequest.getRole());
+        userCollection.changeRole(shareCollectionRequest.getRole());
+        userCollection.markPending();
         this.userCollectionRepository.save(userCollection);
     }
 
@@ -78,20 +71,17 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        boolean isOwner = collection.getCreatedBy().getId().equals(currentUser.getId());
-        if (!isOwner) {
-            UserCollectionId id = UserCollectionId.builder()
-                    .userId(currentUser.getId())
-                    .collectionId(collectionId)
-                    .build();
+        if (!collection.isOwnedBy(currentUser)) {
+            UserCollection membership = this.userCollectionRepository
+                    .findByUserIdAndCollectionId(currentUser.getId(), collectionId)
+                    .orElse(null);
 
-            if (!this.userCollectionRepository.existsById(id)) {
+            if (membership == null || !membership.canView()) {
                 throw new InvalidDataException("You can not access members list");
             }
         }
 
         LinkedHashMap<Long, MemberResponse> members = new LinkedHashMap<>();
-
         members.put(collection.getCreatedBy().getId(), this.userCollectionMapper.toOwnerMemberResponse(collection.getCreatedBy()));
 
         this.userCollectionRepository.findAllActiveMembersByCollectionId(collectionId)
@@ -102,18 +92,18 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     }
 
     @Override
+    @Transactional
     public void joinCollection(Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
-        String username = user.getUsername();
 
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        if (!collection.getVisibility()) {
+        if (!collection.isPublic()) {
             throw new InvalidDataException("Collection is private");
         }
 
-        if (collection.getCreatedBy().getUsername().equals(username)) {
+        if (collection.isOwnedBy(user)) {
             throw new InvalidDataException("You joined before");
         }
 
@@ -122,36 +112,35 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(user.getId())
                 .build();
 
-        boolean isJoinedCollection = this.userCollectionRepository.existsById(id);
+        UserCollection existingMembership = this.userCollectionRepository.findById(id).orElse(null);
+        if (existingMembership != null) {
+            if (existingMembership.isActive()) {
+                throw new InvalidDataException("You have already joined this collection");
+            }
 
-        if (!isJoinedCollection) {
-            CollectionRole collectionRole = (collection.getCreatedBy().getId().equals(user.getId())) ? CollectionRole.OWNER : CollectionRole.VIEWER ;
-            UserCollection userCollection = UserCollection.builder()
-                    .id(id)
-                    .user(user)
-                    .collection(collection)
-                    .role(CollectionRole.VIEWER)
-                    .accessStatus(AccessStatus.PENDING)
-                    .role(collectionRole)
-                    .lastOpenedAt(new Date())
-                    .build();
+            if (existingMembership.isPending()) {
+                throw new InvalidDataException("Your join request is pending");
+            }
 
-            this.userCollectionRepository.save(userCollection);
+            if (existingMembership.isDenied()) {
+                throw new InvalidDataException("You are denied");
+            }
         }
+
+        UserCollection userCollection = UserCollection.requestJoin(user, collection);
+        this.userCollectionRepository.save(userCollection);
     }
 
     @Override
     @Transactional
     public void deleteCollectionMember(Integer collectionId, Long userId) {
         String username = this.currentUserProvider.getCurrentUsername();
-
         User user = this.userService.getById(userId);
 
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        if (!collection.getCreatedBy().getUsername().equals(username)
-            || collection.getCreatedBy().getUsername().equals(user.getUsername())) {
+        if (!collection.isOwnedBy(username) || collection.isOwnedBy(user)) {
             throw new InvalidDataException("You cannot remove");
         }
 
@@ -169,32 +158,30 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     public void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status) {
         String ownerUsername = currentUserProvider.getCurrentUsername();
-        // Tìm record PENDING
         UserCollectionId id = new UserCollectionId(userId, collectionId);
         UserCollection request = userCollectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
-        // Kiểm tra xem người đang gọi có phải là chủ sở hữu collection không
-        if (!request.getCollection().getCreatedBy().getUsername().equals(ownerUsername)) {
+        if (!request.getCollection().isOwnedBy(ownerUsername)) {
             throw new InvalidDataException("Only owner can approve requests");
         }
 
         if (status == AccessStatus.DENIED) {
-            // Nếu từ chối, có thể xóa luôn record hoặc để status DENIED tùy bạn
-            userCollectionRepository.delete(request);
+            request.deny();
         } else {
-            request.setAccessStatus(AccessStatus.ENABLE);
-            userCollectionRepository.save(request);
+            request.approve();
         }
+
+        userCollectionRepository.save(request);
     }
 
     @Override
     @Transactional
     @Async
-    public void updateLastOpenedAt(Long userId , Integer collectionId) {
+    public void updateLastOpenedAt(Long userId, Integer collectionId) {
         userCollectionRepository.findByUserIdAndCollectionId(userId, collectionId)
                 .ifPresent(userCollection -> {
-                    userCollection.setLastOpenedAt(new Date());
+                    userCollection.touchLastOpenedAt(new Date());
                     userCollectionRepository.save(userCollection);
                 });
     }

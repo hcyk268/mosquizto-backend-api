@@ -90,7 +90,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.isOwnedBy(username)) {
+        if (!studySession.canBeViewedBy(username)) {
             throw new InvalidDataException("You do not have permission to view in this session");
         }
 
@@ -180,15 +180,19 @@ public class StudySessionServiceImpl implements StudySessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
         String username = this.currentUserProvider.getCurrentUsername();
-        if (!studySession.isOwnedBy(username)) {
-            throw new InvalidDataException("You do not have permission to complete this session");
+        boolean canProceed = isFullTest
+                ? studySession.canBeCompletedBy(username)
+                : studySession.canBeAnsweredBy(username);
+
+        if (!canProceed) {
+            throw new InvalidDataException("You do not have permission to process this session");
         }
 
         for (StudySessionDetailRequest request : detailRequests) {
             CollectionItem ci = collectionItemRepository.findById(request.getItemId())
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + request.getItemId()));
 
-            if (!ci.getCollection().getId().equals(studySession.getCollection().getId())) {
+            if (!studySession.accepts(ci)) {
                 throw new InvalidDataException("Invalid collection item in this session");
             }
 
@@ -200,7 +204,9 @@ public class StudySessionServiceImpl implements StudySessionService {
             );
         }
 
-        studySession.complete((isFullTest) ? new Date() : null);
+        if (isFullTest) {
+            studySession.completeNow();
+        }
 
         studySessionRepository.save(studySession);
 
@@ -232,39 +238,32 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = this.studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.isOwnedBy(user.getUsername())) {
+        if (!studySession.canBeAnsweredBy(user.getUsername())) {
             throw new InvalidDataException("You do not have permission to answer in this session");
         }
 
         Integer collectionId = studySession.getCollection().getId();
-        boolean isCorrect;
-        String correctAnswer;
         CollectionItem collectionItem;
 
         if (Boolean.TRUE.equals(answerRequest.getMode())) {
             collectionItem = this.collectionItemRepository.findByCollectionIdAndTerm(collectionId, answerRequest.getTerm())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Collection item not found with term: " + answerRequest.getTerm()));
-
-            correctAnswer = collectionItem.getDefinition();
-            isCorrect = correctAnswer != null
-                    && correctAnswer.trim().equalsIgnoreCase(answerRequest.getDefinition().trim());
         } else {
             collectionItem = this.collectionItemRepository.findByCollectionIdAndDefinition(collectionId, answerRequest.getDefinition())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Collection item not found with term: " + answerRequest.getDefinition()));
-
-            correctAnswer = collectionItem.getTerm();
-            isCorrect = correctAnswer != null
-                    && correctAnswer.trim().equalsIgnoreCase(answerRequest.getTerm().trim());
         }
 
         StudySessionDetail detail = studySession.recordAnswer(
                 collectionItem,
-                isCorrect,
+                answerRequest.getTerm(),
+                answerRequest.getDefinition(),
                 answerRequest.getResponseTime(),
                 answerRequest.getMode()
         );
+        boolean isCorrect = Boolean.TRUE.equals(detail.getIsCorrect());
+        String correctAnswer = collectionItem.correctAnswerFor(answerRequest.getMode());
         this.studySessionDetailRepository.save(detail);
         this.studySessionRepository.save(studySession);
 
@@ -275,12 +274,11 @@ public class StudySessionServiceImpl implements StudySessionService {
         StudySession studySession = studySessionRepository.findById(sessionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
-        if (!studySession.isOwnedBy(username)) {
+        if (!studySession.canBeCompletedBy(username)) {
             throw new InvalidDataException("You do not have permission to complete in this session");
         }
 
-        Date now = new Date();
-        studySession.complete(now);
+        studySession.completeNow();
         studySessionRepository.save(studySession);
 
         long durationMs = studySession.calculateDurationMs();

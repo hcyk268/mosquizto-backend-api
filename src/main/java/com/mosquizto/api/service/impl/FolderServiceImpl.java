@@ -37,11 +37,11 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse createFolder(CreateFolderRequest createFolderRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = Folder.builder()
-                .name(createFolderRequest.getName())
-                .description(createFolderRequest.getDescription())
-                .createdBy(user)
-                .build();
+        Folder folder = Folder.create(
+                user,
+                createFolderRequest.getName(),
+                createFolderRequest.getDescription()
+        );
 
         this.folderRepository.save(folder);
 
@@ -57,7 +57,7 @@ public class FolderServiceImpl implements FolderService {
 
         User user = this.currentUserProvider.getCurrentUser();
 
-        if (!folder.isOwnedBy(user.getUsername())) {
+        if (!folder.canManage(user)) {
             throw new InvalidDataException("You do not have permission to delete this folder");
         }
 
@@ -84,7 +84,7 @@ public class FolderServiceImpl implements FolderService {
         Folder folder = this.folderRepository.findByIdAndCreatedByIdWithCollections(folderId, user.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
-        if (!folder.isOwnedBy(user.getUsername())) {
+        if (!folder.canView(user)) {
             throw new InvalidDataException("You do not have permission to view this folder");
         }
 
@@ -105,7 +105,6 @@ public class FolderServiceImpl implements FolderService {
             if (!StringUtils.hasText(updateFolderRequest.getName())) {
                 throw new InvalidDataException("name must be not blank");
             }
-            folder.setName(updateFolderRequest.getName());
             hasUpdatedField = true;
         }
 
@@ -113,13 +112,17 @@ public class FolderServiceImpl implements FolderService {
             if (!StringUtils.hasText(updateFolderRequest.getDescription())) {
                 throw new InvalidDataException("description must be not blank");
             }
-            folder.setDescription(updateFolderRequest.getDescription());
             hasUpdatedField = true;
         }
 
         if (!hasUpdatedField) {
             throw new InvalidDataException("At least one field must be provided");
         }
+
+        folder.updateInfo(
+                updateFolderRequest.getName(),
+                updateFolderRequest.getDescription()
+        );
 
         return this.folderMapper.toFolderResponse(folder);
     }
@@ -140,13 +143,13 @@ public class FolderServiceImpl implements FolderService {
             throw new InvalidDataException("You might not access this collection");
         }
 
-        if (this.folderCollectionRepository.existsByFolderIdAndCollectionId(folderId, collectionId)) {
+        if (folder.containsCollection(collection)) {
             throw new InvalidDataException("Collection is already exists in folder");
         }
 
         int maxOrderIndex = this.folderCollectionRepository.findMaxOrderIndexCollection(folderId);
 
-        FolderCollection folderCollection = FolderCollection.create(folder, collection, maxOrderIndex + 1);
+        FolderCollection folderCollection = folder.addCollection(collection, maxOrderIndex + 1);
 
         this.folderCollectionRepository.save(folderCollection);
 

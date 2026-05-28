@@ -106,9 +106,12 @@ public class Collection extends AbstractEntity<Integer> {
         }
     }
 
+    public int getItemCount() {
+        return safeCount();
+    }
+
     private int safeCount() {
         return this.count == null ? 0 : this.count;
     }
 }
-
 

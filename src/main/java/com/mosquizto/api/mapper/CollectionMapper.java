@@ -10,18 +10,20 @@ import org.springframework.stereotype.Component;
 public class CollectionMapper {
 
     public Collection toEntity(CollectionRequest request, User createdBy) {
-        return Collection.builder()
-                .title(request.getTitle())
-                .description(request.getDescription())
-                .visibility(request.getVisibility())
-                .createdBy(createdBy)
-                .build();
+        return Collection.initialize(
+                createdBy,
+                request.getTitle(),
+                request.getDescription(),
+                request.getVisibility()
+        );
     }
 
     public void updateEntity(Collection collection, CollectionRequest request) {
-        collection.setTitle(request.getTitle());
-        collection.setDescription(request.getDescription());
-        collection.setVisibility(request.getVisibility());
+        collection.updateInfo(
+                request.getTitle(),
+                request.getDescription(),
+                request.getVisibility()
+        );
     }
 
     public CollectionResponse toResponse(Collection collection) {
@@ -34,7 +36,7 @@ public class CollectionMapper {
                 .userName(collection.getCreatedBy() != null ? collection.getCreatedBy().getUsername() : null)
                 .createdAt(collection.getCreatedAt())
                 .updatedAt(collection.getUpdatedAt())
-                .count(collection.getCollectionItems().size())
+                .count(collection.getItemCount())
                 .build();
     }
 }

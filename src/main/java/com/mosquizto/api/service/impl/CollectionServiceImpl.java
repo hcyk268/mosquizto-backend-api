@@ -3,21 +3,18 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
-import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
-import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
-import com.mosquizto.api.util.AccessStatus;
-import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,29 +33,15 @@ public class CollectionServiceImpl implements CollectionService {
     private final UserCollectionRepository userCollectionRepository;
     private  final UserCollectionService userCollectionService ;
     private final CollectionSearchService collectionSearchService ;
+
     @Override
-    @Transactional // Đảm bảo 2 save thành công
+    @Transactional
     public Integer addCollection(CollectionRequest request) {
         User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionMapper.toEntity(request, user);
-
-        collection.setCount(0);
         Collection savedCollection = this.collectionRepository.save(collection);
 
-        // Cập nhật thêm role cho người tạo
-        UserCollectionId ucId = UserCollectionId.builder()
-                .userId(user.getId())
-                .collectionId(savedCollection.getId())
-                .build();
-
-        // 3. Khởi tạo đối tượng UserCollection
-        UserCollection userCollection = UserCollection.builder()
-                .id(ucId)
-                .user(user)
-                .collection(savedCollection)
-                .role(CollectionRole.OWNER)
-                .accessStatus(AccessStatus.ENABLE)
-                .build();
+        UserCollection userCollection = UserCollection.createOwner(user, savedCollection);
 
         this.userCollectionRepository.save(userCollection);
         collectionSearchService.upsert(savedCollection);
@@ -91,7 +74,7 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
         User user = this.currentUserProvider.getCurrentUser();
-        if (!canView(collection, user)) {
+        if (!collection.canView(user, getMembership(user.getId(), collection.getId()))) {
             throw new InvalidDataException("You do not have permission to view this collection");
         }
 
@@ -106,10 +89,8 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        CollectionRole role = this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collection.getId())
-                .orElse(null);
-
-        if (role == null || role == CollectionRole.VIEWER) {
+        UserCollection membership = getMembership(user.getId(), collection.getId());
+        if (!collection.canEdit(membership)) {
             throw new InvalidDataException("Only editor and owner can edit this collection");
         }
 
@@ -121,11 +102,11 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     public void deleteCollection(Integer id) {
         User user = currentUserProvider.getCurrentUser();
+        Collection collection = this.collectionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        CollectionRole role = this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), id)
-                .orElse(null);
-
-        if (role != CollectionRole.OWNER) {
+        UserCollection membership = getMembership(user.getId(), id);
+        if (!collection.canDelete(membership)) {
             throw new InvalidDataException("Only the owner can delete this collection");
         }
         collectionSearchService.delete(id);
@@ -175,19 +156,11 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        return canView(collection, user);
+        return collection.canView(user, getMembership(user.getId(), collectionId));
     }
 
-    private boolean canView(Collection collection, User user) {
-        if (Boolean.TRUE.equals(collection.getVisibility())) {
-            return true;
-        }
-
-        if (collection.getCreatedBy() != null && user.getId().equals(collection.getCreatedBy().getId())) {
-            return true;
-        }
-
-        return this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collection.getId())
-                .isPresent();
+    private UserCollection getMembership(Long userId, Integer collectionId) {
+        return this.userCollectionRepository.findByUserIdAndCollectionId(userId, collectionId)
+                .orElse(null);
     }
 }

@@ -22,7 +22,6 @@ import com.mosquizto.api.service.MailService;
 import com.mosquizto.api.service.RedisTokenService;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.TokenType;
-import com.mosquizto.api.util.UserStatus;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.UnsupportedJwtException;
@@ -197,7 +196,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (!this.jwtService.consumeResetToken(resetPasswordRequest.getSecretKey(), user))
             throw new InvalidTokenException("Token invalid");
 
-        user.setPassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
+        user.changePassword(passwordEncoder.encode(resetPasswordRequest.getNewPassword()));
         this.userService.save(user);
     }
 
@@ -237,22 +236,18 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private User getOrCreateGoogleUser(GoogleIdToken.Payload payload) {
         User user = this.userService.checkEmailExists(payload.getEmail())
                 ? this.userService.getByEmail(payload.getEmail())
-                : User.builder()
-                .email(payload.getEmail())
-                .username(this.generateGoogleUsername(payload.getEmail()))
-                .password(this.passwordEncoder.encode(UUID.randomUUID().toString()))
-                .build();
+                : User.register(
+                        null,
+                        payload.getEmail(),
+                        this.generateGoogleUsername(payload.getEmail()),
+                        this.passwordEncoder.encode(UUID.randomUUID().toString()),
+                        this.getDefaultUserRole()
+                );
 
-        if (user.getFullName() == null || user.getFullName().isBlank()) {
-            user.setFullName(this.getGoogleName(payload, payload.getEmail()));
-        }
-
-        if (user.getRole() == null) {
-            user.setRole(this.getDefaultUserRole());
-        }
-
-        user.setStatus(UserStatus.ACTIVE);
-        user.setVerifyCode(null);
+        user.applyGoogleProfile(
+                this.getGoogleName(payload, payload.getEmail()),
+                this.getDefaultUserRole()
+        );
         this.userService.save(user);
         return user;
     }
