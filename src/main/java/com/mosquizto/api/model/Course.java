@@ -1,5 +1,6 @@
 package com.mosquizto.api.model;
 
+import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CourseRole;
 import jakarta.persistence.*;
@@ -38,8 +39,53 @@ public class Course extends AbstractEntity<Long> {
     @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<UserCourse> userCourses = new ArrayList<>();
 
+    public static Course create(String title,
+                                String description,
+                                Boolean visibility,
+                                String thumbnailUrl,
+                                User owner) {
+        if (owner == null) {
+            throw new InvalidDataException("Course owner must not be null");
+        }
+
+        Course course = Course.builder()
+                .title(title)
+                .description(description)
+                .visibility(visibility)
+                .thumbnailUrl(thumbnailUrl)
+                .build();
+        course.addMember(owner, CourseRole.TEACHER, AccessStatus.ENABLE);
+        return course;
+    }
+
     public boolean isVisible() {
         return Boolean.TRUE.equals(this.visibility);
+    }
+
+    public boolean canView(UserCourse membership) {
+        return isVisible() || (membership != null && membership.isEnabled());
+    }
+
+    public boolean canManage(UserCourse membership) {
+        return membership != null && membership.isEnabled() && membership.isTeacher();
+    }
+
+    public void updateInfo(String title, String description, Boolean visibility, String thumbnailUrl) {
+        if (title != null) {
+            this.title = title;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
+
+        if (visibility != null) {
+            this.visibility = visibility;
+        }
+
+        if (thumbnailUrl != null) {
+            this.thumbnailUrl = thumbnailUrl;
+        }
     }
 
     public CourseCollection addCollection(Collection collection, Integer orderIndex) {
@@ -101,6 +147,29 @@ public class Course extends AbstractEntity<Long> {
     public boolean hasTeacher(User user) {
         UserCourse userCourse = findUserCourse(user);
         return userCourse != null && userCourse.isTeacher() && userCourse.isEnabled();
+    }
+
+    public UserCourse requestJoin(User user) {
+        if (user == null) {
+            throw new InvalidDataException("User must not be null");
+        }
+
+        UserCourse existing = findUserCourse(user);
+        if (existing != null) {
+            if (existing.isEnabled()) {
+                throw new InvalidDataException("You have already joined this course");
+            }
+
+            if (existing.isPending()) {
+                throw new InvalidDataException("Your join request is pending");
+            }
+
+            if (existing.isDenied()) {
+                throw new InvalidDataException("You are denied");
+            }
+        }
+
+        return addMember(user, CourseRole.STUDENT, isVisible() ? AccessStatus.ENABLE : AccessStatus.PENDING);
     }
 
     private CourseCollection findCourseCollection(Collection collection) {

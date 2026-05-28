@@ -1,5 +1,6 @@
 package com.mosquizto.api.model;
 
+import com.mosquizto.api.exception.InvalidDataException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,6 +33,54 @@ public class CollectionItem extends AbstractEntity<Integer> {
 
     @OneToMany(mappedBy = "collectionItem", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudySessionDetail> studySessionDetails = new ArrayList<>();
+
+    public boolean belongsTo(Collection collection) {
+        return this.collection != null
+                && this.collection.getId() != null
+                && collection != null
+                && collection.getId() != null
+                && this.collection.getId().equals(collection.getId());
+    }
+
+    public String correctAnswerFor(Boolean mode) {
+        return Boolean.TRUE.equals(mode) ? this.definition : this.term;
+    }
+
+    public boolean matchesAnswer(Boolean mode, String submittedTerm, String submittedDefinition) {
+        String expectedAnswer = correctAnswerFor(mode);
+        String submittedAnswer = Boolean.TRUE.equals(mode) ? submittedDefinition : submittedTerm;
+        return normalized(expectedAnswer).equalsIgnoreCase(normalized(submittedAnswer));
+    }
+
+    public void updateContent(String term, String definition, String imageUrl, Integer orderIndex) {
+        if (term != null) {
+            this.term = term;
+        }
+
+        if (definition != null) {
+            this.definition = definition;
+        }
+
+        if (imageUrl != null) {
+            this.imageUrl = imageUrl;
+        }
+
+        if (orderIndex != null) {
+            this.orderIndex = orderIndex;
+        }
+    }
+
+    public void assignTo(Collection collection) {
+        if (collection == null) {
+            throw new InvalidDataException("Collection must not be null");
+        }
+
+        this.collection = collection;
+    }
+
+    private String normalized(String value) {
+        return value == null ? "" : value.trim();
+    }
 }
 
 

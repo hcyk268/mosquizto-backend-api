@@ -1,5 +1,6 @@
 package com.mosquizto.api.model;
 
+import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.util.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
@@ -58,6 +59,81 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<StudySession> studySessions = new ArrayList<>();
+
+    public static User register(String fullName,
+                                String email,
+                                String username,
+                                String encodedPassword,
+                                Role role) {
+        if (role == null) {
+            throw new InvalidDataException("User role must not be null");
+        }
+
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new InvalidDataException("Encoded password must not be blank");
+        }
+
+        return User.builder()
+                .fullName(fullName)
+                .email(email)
+                .username(username)
+                .password(encodedPassword)
+                .status(UserStatus.INACTIVE)
+                .role(role)
+                .build();
+    }
+
+    public void activate(String verifyCode) {
+        if (this.verifyCode == null || verifyCode == null || !this.verifyCode.equals(verifyCode)) {
+            throw new InvalidDataException("Invalid verification code or user not found");
+        }
+
+        activate();
+    }
+
+    public void activate() {
+        this.status = UserStatus.ACTIVE;
+        clearVerifyCode();
+    }
+
+    public void assignVerifyCode(String verifyCode) {
+        if (verifyCode == null || verifyCode.isBlank()) {
+            throw new InvalidDataException("Verify code must not be blank");
+        }
+
+        this.verifyCode = verifyCode;
+    }
+
+    public void clearVerifyCode() {
+        this.verifyCode = null;
+    }
+
+    public void changePassword(String encodedPassword) {
+        if (encodedPassword == null || encodedPassword.isBlank()) {
+            throw new InvalidDataException("Encoded password must not be blank");
+        }
+
+        this.password = encodedPassword;
+    }
+
+    public void updateProfile(String fullName) {
+        if (fullName != null) {
+            this.fullName = fullName;
+        }
+    }
+
+    public void applyGoogleProfile(String fallbackFullName, Role defaultRole) {
+        if ((this.fullName == null || this.fullName.isBlank())
+                && fallbackFullName != null && !fallbackFullName.isBlank()) {
+            this.fullName = fallbackFullName;
+        }
+
+        if (this.role == null && defaultRole != null) {
+            this.role = defaultRole;
+        }
+
+        activate();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

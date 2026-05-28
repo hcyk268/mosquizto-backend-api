@@ -1,5 +1,6 @@
 package com.mosquizto.api.model;
 
+import com.mosquizto.api.exception.InvalidDataException;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -30,10 +31,48 @@ public class Folder extends AbstractEntity<Long> {
     @OneToMany(mappedBy = "folder", fetch = FetchType.LAZY)
     private List<FolderCollection> folderCollections = new ArrayList<>();
 
+    public static Folder create(User owner, String name, String description) {
+        if (owner == null) {
+            throw new InvalidDataException("Folder owner must not be null");
+        }
+
+        return Folder.builder()
+                .createdBy(owner)
+                .name(name)
+                .description(description)
+                .build();
+    }
+
+    public boolean isOwnedBy(User user) {
+        return this.createdBy != null
+                && this.createdBy.getId() != null
+                && user != null
+                && user.getId() != null
+                && this.createdBy.getId().equals(user.getId());
+    }
+
     public boolean isOwnedBy(String username) {
         return this.createdBy != null
                 && this.createdBy.getUsername() != null
                 && this.createdBy.getUsername().equals(username);
+    }
+
+    public boolean canView(User user) {
+        return isOwnedBy(user);
+    }
+
+    public boolean canManage(User user) {
+        return isOwnedBy(user);
+    }
+
+    public void updateInfo(String name, String description) {
+        if (name != null) {
+            this.name = name;
+        }
+
+        if (description != null) {
+            this.description = description;
+        }
     }
 
     public FolderCollection addCollection(Collection collection, Integer orderIndex) {

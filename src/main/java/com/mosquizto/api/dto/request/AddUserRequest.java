@@ -1,5 +1,6 @@
 package com.mosquizto.api.dto.request;
 
+import com.mosquizto.api.validator.StrongPassword;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -28,6 +29,7 @@ public class AddUserRequest implements Serializable {
     private String username;
 
     @NotBlank(message = "password must be not blank")
+    @StrongPassword
     private String password;
 
     @NotNull(message = "role must be not null")
