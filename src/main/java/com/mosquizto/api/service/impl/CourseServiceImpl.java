@@ -25,7 +25,6 @@ import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CourseService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.util.AccessStatus;
-import com.mosquizto.api.util.CourseRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -58,14 +57,13 @@ public class CourseServiceImpl implements CourseService {
     public Long createCourse(CreateCourseRequest createCourseRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Course course = Course.builder()
-                .title(createCourseRequest.getTitle())
-                .description(createCourseRequest.getDescription())
-                .visibility(createCourseRequest.getVisibility())
-                .thumbnailUrl(createCourseRequest.getThumbnailUrl())
-                .build();
-
-        course.addMember(user, CourseRole.TEACHER, AccessStatus.ENABLE);
+        Course course = Course.create(
+                createCourseRequest.getTitle(),
+                createCourseRequest.getDescription(),
+                createCourseRequest.getVisibility(),
+                createCourseRequest.getThumbnailUrl(),
+                user
+        );
 
         Course savedCourse = this.courseRepository.save(course);
         return savedCourse.getId();
@@ -80,7 +78,7 @@ public class CourseServiceImpl implements CourseService {
 
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "Only teacher can update this course");
+        this.validateManager(course, currentUserCourse, "Only teacher can update this course");
 
         boolean hasUpdatedField = false;
 
@@ -88,7 +86,6 @@ public class CourseServiceImpl implements CourseService {
             if (!StringUtils.hasText(updateCourseRequest.getTitle())) {
                 throw new InvalidDataException("title must be not blank");
             }
-            course.setTitle(updateCourseRequest.getTitle());
             hasUpdatedField = true;
         }
 
@@ -96,23 +93,27 @@ public class CourseServiceImpl implements CourseService {
             if (!StringUtils.hasText(updateCourseRequest.getDescription())) {
                 throw new InvalidDataException("description must be not blank");
             }
-            course.setDescription(updateCourseRequest.getDescription());
             hasUpdatedField = true;
         }
 
         if (updateCourseRequest.getVisibility() != null) {
-            course.setVisibility(updateCourseRequest.getVisibility());
             hasUpdatedField = true;
         }
 
         if (updateCourseRequest.getThumbnailUrl() != null) {
-            course.setThumbnailUrl(updateCourseRequest.getThumbnailUrl());
             hasUpdatedField = true;
         }
 
         if (!hasUpdatedField) {
             throw new InvalidDataException("At least one field must be provided");
         }
+
+        course.updateInfo(
+                updateCourseRequest.getTitle(),
+                updateCourseRequest.getDescription(),
+                updateCourseRequest.getVisibility(),
+                updateCourseRequest.getThumbnailUrl()
+        );
 
         return this.courseMapper.toResponse(course, currentUserCourse);
     }
@@ -124,7 +125,7 @@ public class CourseServiceImpl implements CourseService {
         Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "Only teacher can delete this course");
+        this.validateManager(course, currentUserCourse, "Only teacher can delete this course");
 
         this.courseRepository.delete(course);
     }
@@ -136,7 +137,7 @@ public class CourseServiceImpl implements CourseService {
         Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        if (!course.isVisible() && !isEnabledMember(currentUserCourse)) {
+        if (!course.canView(currentUserCourse)) {
             throw new InvalidDataException("You do not have permission to view this course");
         }
 
@@ -184,7 +185,7 @@ public class CourseServiceImpl implements CourseService {
         Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "Only teacher can add collection to this course");
+        this.validateManager(course, currentUserCourse, "Only teacher can add collection to this course");
 
         Collection collection = this.collectionService.getById(collectionId);
         boolean accessibility = this.collectionService.isAccessible(collectionId);
@@ -193,12 +194,8 @@ public class CourseServiceImpl implements CourseService {
             throw new InvalidDataException("You might not access this collection");
         }
 
-        if (this.courseCollectionRepository.existsByCourseIdAndCollectionId(courseId, collectionId)) {
-            throw new InvalidDataException("Collection is already exists in course");
-        }
-
         int maxOrderIndex = this.courseCollectionRepository.findMaxOrderIndexCollection(courseId);
-        CourseCollection courseCollection = CourseCollection.create(course, collection, maxOrderIndex + 1);
+        CourseCollection courseCollection = course.addCollection(collection, maxOrderIndex + 1);
 
         this.courseCollectionRepository.save(courseCollection);
 
@@ -209,10 +206,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     public void deleteCollection(Long courseId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "Only teacher can remove collection from this course");
+        this.validateManager(course, currentUserCourse, "Only teacher can remove collection from this course");
 
         CourseCollection courseCollection = this.courseCollectionRepository.findByCourseIdAndCollectionId(courseId, collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in course"));
@@ -227,7 +224,7 @@ public class CourseServiceImpl implements CourseService {
         Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        if (!course.isVisible() && !isEnabledMember(currentUserCourse)) {
+        if (!course.canView(currentUserCourse)) {
             throw new InvalidDataException("You do not have permission to view this course");
         }
 
@@ -239,28 +236,7 @@ public class CourseServiceImpl implements CourseService {
     public JoinResponse joinCourse(Long courseId) {
         User user = this.currentUserProvider.getCurrentUser();
         Course course = this.getCourseById(courseId);
-        AccessStatus joinStatus = course.isVisible() ? AccessStatus.ENABLE : AccessStatus.PENDING;
-
-        UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
-
-        if (currentUserCourse != null) {
-            if (currentUserCourse.isEnabled()) {
-                throw new InvalidDataException("You have already joined this course");
-            }
-
-            if (currentUserCourse.isPending()) {
-                throw new InvalidDataException("Your join request is pending");
-            }
-
-            if (currentUserCourse.isDenied()) {
-                throw new InvalidDataException("You are denied");
-            }
-
-        } else {
-            currentUserCourse = UserCourse.create(user, course, CourseRole.STUDENT, joinStatus);
-        }
-
-        UserCourse savedUserCourse = this.userCourseRepository.save(currentUserCourse);
+        UserCourse savedUserCourse = this.userCourseRepository.save(course.requestJoin(user));
 
         return this.courseMapper.toJoinResponse(savedUserCourse);
     }
@@ -269,10 +245,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public PageResponse<JoinResponse> getPendingJoinRequests(Long courseId, int page, int size) {
         User user = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse userCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
-        this.validateTeacher(userCourse, "You can not access pending join list");
+        this.validateManager(course, userCourse, "You can not access pending join list");
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
@@ -289,10 +265,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     public void approveJoinRequest(Long courseId, Long userId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "You can not approve join request");
+        this.validateManager(course, currentUserCourse, "You can not approve join request");
 
         UserCourse joinRequest = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
@@ -309,10 +285,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional
     public void removeStudentFromCourse(Long courseId, Long userId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "You can not remove student from course");
+        this.validateManager(course, currentUserCourse, "You can not remove student from course");
 
         UserCourse targetUserCourse = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found in course"));
@@ -333,10 +309,10 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public PageResponse<CourseMemberResponse> getCourseMembers(Long courseId, int page, int size) {
         User currentUser = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId).orElse(null);
 
-        this.validateTeacher(currentUserCourse, "You can not access course members");
+        this.validateManager(course, currentUserCourse, "You can not access course members");
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.ASC, "role")
                 .and(Sort.by(Sort.Direction.ASC, "user.username")));
@@ -353,11 +329,11 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public BestLearntCollectionResponse getBestLearntCollections(Long courseId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId)
                 .orElse(null);
 
-        if (!this.isEnabledMember(currentUserCourse)) {
+        if (!course.canView(currentUserCourse) || currentUserCourse == null || !currentUserCourse.isEnabled()) {
             throw new InvalidDataException("Only course members can access course stats");
         }
 
@@ -387,11 +363,11 @@ public class CourseServiceImpl implements CourseService {
     @Transactional(readOnly = true)
     public Long countStudySessionsInCourse(Long courseId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
-        this.getCourseById(courseId);
+        Course course = this.getCourseById(courseId);
         UserCourse currentUserCourse = this.getCurrentUserCourse(currentUser.getId(), courseId)
                 .orElse(null);
 
-        if (!this.isEnabledMember(currentUserCourse)) {
+        if (!course.canView(currentUserCourse) || currentUserCourse == null || !currentUserCourse.isEnabled()) {
             throw new InvalidDataException("Only course members can access course stats");
         }
 
@@ -410,14 +386,10 @@ public class CourseServiceImpl implements CourseService {
         return this.userCourseRepository.findByUserIdAndCourseId(userId, courseId);
     }
 
-    private void validateTeacher(UserCourse userCourse, String message) {
-        if (userCourse == null || !userCourse.isEnabled() || !userCourse.isTeacher()) {
+    private void validateManager(Course course, UserCourse userCourse, String message) {
+        if (!course.canManage(userCourse)) {
             throw new InvalidDataException(message);
         }
-    }
-
-    private boolean isEnabledMember(UserCourse userCourse) {
-        return userCourse != null && userCourse.isEnabled();
     }
 
     private List<CollectionSummaryResponse> getOrderedEnabledCollections(Long courseId) {

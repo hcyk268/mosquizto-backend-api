@@ -8,6 +8,7 @@ import com.mosquizto.api.mapper.CollectionItemMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.User;
+import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
@@ -15,7 +16,6 @@ import com.mosquizto.api.service.CollectionItemService;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
-import com.mosquizto.api.util.CollectionRole;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,52 +33,57 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemMapper collectionItemMapper;
     private final UserCollectionRepository userCollectionRepository;
-    private final UserCollectionService userCollectionService ;
-    private final CollectionSearchService collectionSearchService ;
-    @Override
-    public CollectionItemResponse addNewItem(CollectionItemRequest request) {
-        var collection = findCollectionById(request.getCollectionId());
+    private final UserCollectionService userCollectionService;
+    private final CollectionSearchService collectionSearchService;
 
-        CollectionRole role = getUserRoleInCollection(collection.getId());
-        if (role == null || role == CollectionRole.VIEWER) {
+    @Override
+    @Transactional
+    public CollectionItemResponse addNewItem(CollectionItemRequest request) {
+        Collection collection = findCollectionById(request.getCollectionId());
+        UserCollection membership = getMembership(collection.getId());
+
+        if (!collection.canEdit(membership)) {
             throw new InvalidDataException("Only editor and owner can add items to this collection");
         }
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
-        collectionRepository.updateItemCount(collection.getId(), 1);
+        collection.increaseItemCount();
+        collectionRepository.save(collection);
         collectionSearchService.upsert(collection);
         return this.collectionItemMapper.toResponse(this.collectionItemRepository.save(newItem));
     }
 
     @Override
     public List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId) {
-        var collection = findCollectionById(collectionId);
-        CollectionRole role = getUserRoleInCollection(collectionId);
+        Collection collection = findCollectionById(collectionId);
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        UserCollection membership = getMembership(collectionId);
 
-        if (Boolean.FALSE.equals(collection.getVisibility()) && role == null) {
+        if (!collection.canView(currentUser, membership)) {
             throw new InvalidDataException("You do not have permission to see this collection");
         }
 
-        var items = this.collectionItemRepository.findByCollectionId(collectionId);
-        var userId = this.currentUserProvider.getCurrentUser().getId() ;
-        this.userCollectionService.updateLastOpenedAt(userId,collectionId);
+        List<CollectionItem> items = this.collectionItemRepository.findByCollectionId(collectionId);
+        this.userCollectionService.updateLastOpenedAt(currentUser.getId(), collectionId);
         return items.stream()
                 .map(this.collectionItemMapper::toResponse)
                 .toList();
     }
 
     @Override
+    @Transactional
     public CollectionItemResponse deleteCollectionItem(Integer id) {
         CollectionItem targetItem = getItemById(id);
         Collection collection = targetItem.getCollection();
+        UserCollection membership = getMembership(collection.getId());
 
-        CollectionRole role = getUserRoleInCollection(collection.getId());
-        if (role == null || role == CollectionRole.VIEWER) {
+        if (!collection.canEdit(membership)) {
             throw new InvalidDataException("Only editor and owner can delete items in this collection");
         }
 
         this.collectionItemRepository.delete(targetItem);
-        collectionRepository.updateItemCount(collection.getId(), -1);
+        collection.decreaseItemCount();
+        collectionRepository.save(collection);
         collectionSearchService.upsert(collection);
         return this.collectionItemMapper.toResponse(targetItem);
     }
@@ -93,8 +98,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw new InvalidDataException("Item does not belong to this collection");
         }
 
-        CollectionRole role = getUserRoleInCollection(collection.getId());
-        if (role == null || role == CollectionRole.VIEWER) {
+        UserCollection membership = getMembership(collection.getId());
+        if (!collection.canEdit(membership)) {
             throw new InvalidDataException("Only editor and owner can edit items in this collection");
         }
 
@@ -114,10 +119,10 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         return collectionItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
     }
-    
-    private CollectionRole getUserRoleInCollection(Integer collectionId) {
+
+    private UserCollection getMembership(Integer collectionId) {
         User currentUser = currentUserProvider.getCurrentUser();
-        return userCollectionRepository.getActiveRoleInUserCollection(currentUser.getId(), collectionId)
-                .orElse(null); // Trả về null nếu user không thuộc collection này
+        return userCollectionRepository.findByUserIdAndCollectionId(currentUser.getId(), collectionId)
+                .orElse(null);
     }
 }

@@ -37,7 +37,7 @@ public class StudySessionMapper {
                 .totalScore(studySession.getTotalScore())
                 .totalCorrect(studySession.getTotalCorrect())
                 .collectionId(studySession.getCollection().getId())
-                .collectionCount(studySession.getCollection().getCollectionItems().size())
+                .collectionCount(studySession.getCollection().getItemCount())
                 .totalWrong(studySession.getTotalWrong())
                 .startedAt(studySession.getStartedAt())
                 .completedAt(studySession.getCompletedAt())
@@ -140,6 +140,6 @@ public class StudySessionMapper {
             return null;
         }
 
-        return Boolean.FALSE.equals(mode) ? collectionItem.getTerm() : collectionItem.getDefinition();
+        return collectionItem.correctAnswerFor(mode);
     }
 }

@@ -89,8 +89,7 @@ public class UserCollection {
             throw new InvalidDataException("Collection is private");
         }
 
-        if (collection.getCreatedBy() != null && collection.getCreatedBy().getId() != null
-                && collection.getCreatedBy().getId().equals(user.getId())) {
+        if (collection.isOwnedBy(user)) {
             throw new InvalidDataException("Owner does not need to join their own collection");
         }
 
@@ -152,6 +151,14 @@ public class UserCollection {
         return AccessStatus.ENABLE.equals(this.accessStatus);
     }
 
+    public boolean isPending() {
+        return AccessStatus.PENDING.equals(this.accessStatus);
+    }
+
+    public boolean isDenied() {
+        return AccessStatus.DENIED.equals(this.accessStatus);
+    }
+
     private static void validateUserAndCollection(User user, Collection collection) {
         if (user == null) {
             throw new InvalidDataException("User must not be null");
@@ -179,5 +186,3 @@ public class UserCollection {
                 .build();
     }
 }
-
-

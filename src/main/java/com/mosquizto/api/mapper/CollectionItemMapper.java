@@ -14,20 +14,24 @@ import java.util.Date;
 public class CollectionItemMapper {
 
     public CollectionItem toEntity(CollectionItemRequest request, Collection collection) {
-        return CollectionItem.builder()
-                .term(request.getTerm())
-                .definition(request.getDefinition())
-                .imageUrl(request.getImageUrl())
-                .orderIndex(request.getOrderIndex())
-                .collection(collection)
-                .build();
+        CollectionItem item = new CollectionItem();
+        item.updateContent(
+                request.getTerm(),
+                request.getDefinition(),
+                request.getImageUrl(),
+                request.getOrderIndex()
+        );
+        item.assignTo(collection);
+        return item;
     }
 
     public void updateEntity(CollectionItem item, CollectionItemRequest request) {
-        item.setTerm(request.getTerm());
-        item.setDefinition(request.getDefinition());
-        item.setImageUrl(request.getImageUrl());
-        item.setOrderIndex(request.getOrderIndex());
+        item.updateContent(
+                request.getTerm(),
+                request.getDefinition(),
+                request.getImageUrl(),
+                request.getOrderIndex()
+        );
     }
 
     public CollectionItemResponse toResponse(CollectionItem item) {

@@ -14,7 +14,6 @@ import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserService;
-import com.mosquizto.api.util.UserStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -52,14 +51,13 @@ public class UserServiceImpl implements UserService {
             throw new InvalidDataException("Email already exists");
         }
 
-        User user = User.builder()
-                .fullName(request.getFullName())
-                .email(request.getEmail())
-                .username(request.getUsername())
-                .password(this.passwordEncoder.encode(request.getPassword()))
-                .status(UserStatus.INACTIVE)
-                .role(role)
-                .build();
+        User user = User.register(
+                request.getFullName(),
+                request.getEmail(),
+                request.getUsername(),
+                this.passwordEncoder.encode(request.getPassword()),
+                role
+        );
 
         this.userRepository.save(user);
 
@@ -81,8 +79,7 @@ public class UserServiceImpl implements UserService {
         User user = this.userRepository.findByIdAndVerifyCode(userId, verifyCode)
                 .orElseThrow(() -> new InvalidDataException("Invalid verification code or user not found"));
 
-        user.setStatus(UserStatus.ACTIVE);
-        user.setVerifyCode(null);
+        user.activate(verifyCode);
         this.userRepository.save(user);
     }
 
@@ -91,7 +88,7 @@ public class UserServiceImpl implements UserService {
         User user = this.userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
-        user.setVerifyCode(verifyCode);
+        user.assignVerifyCode(verifyCode);
         this.userRepository.save(user);
     }
 
@@ -134,7 +131,7 @@ public class UserServiceImpl implements UserService {
             throw new InvalidDataException("Old password wrong");
         }
 
-        user.setPassword(this.passwordEncoder.encode(changePasswordRequest.getNewPassword()));
+        user.changePassword(this.passwordEncoder.encode(changePasswordRequest.getNewPassword()));
 
         this.save(user);
     }
@@ -150,7 +147,7 @@ public class UserServiceImpl implements UserService {
     public void updateUser(UpdateUserRequest updateUserRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        user.setFullName(updateUserRequest.getFullName());
+        user.updateProfile(updateUserRequest.getFullName());
 
         this.save(user);
     }
