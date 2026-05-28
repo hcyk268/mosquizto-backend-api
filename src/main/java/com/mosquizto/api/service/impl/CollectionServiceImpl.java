@@ -90,7 +90,12 @@ public class CollectionServiceImpl implements CollectionService {
     public CollectionResponse getDetail(Integer id) {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
-        userCollectionService.updateLastOpenedAt(this.currentUserProvider.getCurrentUser().getId(), id);
+        User user = this.currentUserProvider.getCurrentUser();
+        if (!canView(collection, user)) {
+            throw new InvalidDataException("You do not have permission to view this collection");
+        }
+
+        userCollectionService.updateLastOpenedAt(user.getId(), id);
         return this.collectionMapper.toResponse(collection);
     }
 
@@ -170,11 +175,19 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
+        return canView(collection, user);
+    }
+
+    private boolean canView(Collection collection, User user) {
+        if (Boolean.TRUE.equals(collection.getVisibility())) {
+            return true;
+        }
+
         if (collection.getCreatedBy() != null && user.getId().equals(collection.getCreatedBy().getId())) {
             return true;
         }
 
-        return this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collectionId)
+        return this.userCollectionRepository.getActiveRoleInUserCollection(user.getId(), collection.getId())
                 .isPresent();
     }
 }

@@ -67,7 +67,6 @@ public class StudySessionController {
     }
 
     @PostMapping("/{sessionId}/complete-batch")
-    @Operation()
     public ResponseData<StudySessionResultResponse> completeBatch(
             @PathVariable("sessionId") Long sessionId , @RequestBody
              List<StudySessionDetailRequest> list ,
@@ -78,7 +77,6 @@ public class StudySessionController {
     }
 
     @GetMapping("/get-jump-back-in")
-
     public ResponseData<List<StudySessionResponse>> getJumpBackIn()
     {
         return  new ResponseData<>(HttpStatus.OK.value(),"get jump back in study session",
