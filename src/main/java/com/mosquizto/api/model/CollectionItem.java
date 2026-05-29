@@ -1,6 +1,7 @@
 package com.mosquizto.api.model;
 
 import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.util.matching.TextMatcher;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -46,10 +47,10 @@ public class CollectionItem extends AbstractEntity<Integer> {
         return Boolean.TRUE.equals(mode) ? this.definition : this.term;
     }
 
-    public boolean matchesAnswer(Boolean mode, String submittedTerm, String submittedDefinition) {
+    public boolean matchesAnswer(Boolean mode, String submittedTerm, String submittedDefinition, TextMatcher textMatcher, double threshold) {
         String expectedAnswer = correctAnswerFor(mode);
         String submittedAnswer = Boolean.TRUE.equals(mode) ? submittedDefinition : submittedTerm;
-        return normalized(expectedAnswer).equalsIgnoreCase(normalized(submittedAnswer));
+        return textMatcher.match(expectedAnswer, submittedAnswer) >= threshold;
     }
 
     public void updateContent(String term, String definition, String imageUrl, Integer orderIndex) {
@@ -78,9 +79,6 @@ public class CollectionItem extends AbstractEntity<Integer> {
         this.collection = collection;
     }
 
-    private String normalized(String value) {
-        return value == null ? "" : value.trim();
-    }
 }
 
 

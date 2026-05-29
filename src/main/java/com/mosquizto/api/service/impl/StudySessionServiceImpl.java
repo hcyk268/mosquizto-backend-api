@@ -20,6 +20,9 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.IdempotencyService;
 import com.mosquizto.api.service.StudySessionService;
 import com.mosquizto.api.service.StudySessionStatsCalculator;
+import com.mosquizto.api.util.matching.TextMatcher;
+import com.mosquizto.api.util.matching.TextMatcherResolver;
+import com.mosquizto.api.util.matching.TextMatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +44,8 @@ import java.util.function.Supplier;
 public class StudySessionServiceImpl implements StudySessionService {
 
     private static final Duration IDEMPOTENCY_RESULT_TTL = Duration.ofMinutes(10);
+    private static final double DEFINITION_MATCH_THRESHOLD = 0.85d;
+    private static final double TERM_MATCH_THRESHOLD = 0.95d;
 
     private final CurrentUserProvider currentUserProvider;
     private final CollectionService collectionService;
@@ -51,6 +56,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     private final StudySessionStatsCalculator studySessionStatsCalculator;
     private final IdempotencyService idempotencyService;
     private final PlatformTransactionManager transactionManager;
+    private final TextMatcherResolver textMatcherResolver;
 
     @Override
     public Long startStudySession(StartStudySessionRequest startStudySession, String idempotencyKey) {
@@ -255,12 +261,17 @@ public class StudySessionServiceImpl implements StudySessionService {
                             "Collection item not found with term: " + answerRequest.getDefinition()));
         }
 
+        TextMatcher textMatcher = answerRequest.getMode() ? textMatcherResolver.get(TextMatcherType.BAG_OF_WORDS_COSINE) : textMatcherResolver.get(TextMatcherType.DAMERAU_LEVENSHTEIN);
+        double threshold = answerRequest.getMode() ? DEFINITION_MATCH_THRESHOLD : TERM_MATCH_THRESHOLD;
+
         StudySessionDetail detail = studySession.recordAnswer(
                 collectionItem,
                 answerRequest.getTerm(),
                 answerRequest.getDefinition(),
                 answerRequest.getResponseTime(),
-                answerRequest.getMode()
+                answerRequest.getMode(),
+                textMatcher,
+                threshold
         );
         boolean isCorrect = Boolean.TRUE.equals(detail.getIsCorrect());
         String correctAnswer = collectionItem.correctAnswerFor(answerRequest.getMode());
