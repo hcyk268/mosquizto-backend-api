@@ -8,6 +8,7 @@ import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.AccessStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +21,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/user-collection")
+@Tag(name = "Collection Member", description = "Collection sharing and member APIs")
 public class UserCollectionController {
 
     private final UserCollectionService userCollectionService;
 
+    @Operation(summary = "Share collection", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/share/{collectionId}")
     public ResponseData<?> shareCollection(@PathVariable Integer collectionId,
                                            @Valid @RequestBody ShareCollectionRequest shareCollectionRequest) {
@@ -31,17 +34,20 @@ public class UserCollectionController {
         return new ResponseData<>(HttpStatus.CREATED.value(), "Collection shared successfully");
     }
 
+    @Operation(summary = "Get collection members", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/members/{collectionId}")
     public ResponseData<List<MemberResponse>> getAllMembersCollection(@PathVariable Integer collectionId) {
         return new ResponseData<>(HttpStatus.OK.value(), "Success", this.userCollectionService.getAllMembersCollection(collectionId));
     }
 
+    @Operation(summary = "Join collection", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/join/{collectionId}")
     public ResponseData<?> joinCollection(@PathVariable Integer collectionId) {
         this.userCollectionService.joinCollection(collectionId);
         return new ResponseData<>(HttpStatus.OK.value(), "Joined Successfully");
     }
 
+    @Operation(summary = "Remove collection member", security = @SecurityRequirement(name = "bearerAuth"))
     @DeleteMapping("/delete/member/{collectionId}/{userId}")
     public ResponseData<?> deleteCollectionMember(@PathVariable Integer collectionId, @PathVariable Long userId) {
         this.userCollectionService.deleteCollectionMember(collectionId, userId);

@@ -2,8 +2,10 @@ package com.mosquizto.api.mapper;
 
 import com.mosquizto.api.dto.request.CollectionItemRequest;
 import com.mosquizto.api.dto.response.CollectionItemResponse;
+import com.mosquizto.api.dto.response.StarredCollectionItemResponse;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
+import com.mosquizto.api.model.UserCollectionItemStar;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
@@ -46,6 +48,20 @@ public class CollectionItemMapper {
                 .updateAt(toLocalDateTime(item.getUpdatedAt()))
                 .build();
     }
+
+    public StarredCollectionItemResponse toResponse(UserCollectionItemStar star) {
+        CollectionItem item = star.getCollectionItem();
+        return StarredCollectionItemResponse.builder()
+                .itemId(item.getId())
+                .collectionId(item.getCollection() != null ? item.getCollection().getId() : null)
+                .term(item.getTerm())
+                .definition(item.getDefinition())
+                .imageUrl(item.getImageUrl())
+                .orderIndex(item.getOrderIndex())
+                .starredAt(star.getCreatedAt())
+                .build();
+    }
+
 
     private LocalDateTime toLocalDateTime(Date date) {
         if (date == null) {

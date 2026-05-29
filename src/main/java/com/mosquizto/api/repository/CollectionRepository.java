@@ -16,6 +16,8 @@ public interface CollectionRepository extends JpaRepository<Collection, Integer>
 
     Page<Collection> findAllByCreatedById(Long userId, Pageable pageable);
 
+    long countByCreatedById(Long userId);
+
     @Query("SELECT DISTINCT c FROM Collection c " +
             "LEFT JOIN UserCollection uc ON c.id = uc.collection.id " +
             "WHERE c.createdBy.id = :userId " +

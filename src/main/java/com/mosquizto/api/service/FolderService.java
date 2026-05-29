@@ -1,7 +1,9 @@
 package com.mosquizto.api.service;
 
 import com.mosquizto.api.dto.request.CreateFolderRequest;
+import com.mosquizto.api.dto.request.ShareFolderRequest;
 import com.mosquizto.api.dto.request.UpdateFolderRequest;
+import com.mosquizto.api.dto.response.FolderMemberResponse;
 import com.mosquizto.api.dto.response.FolderResponse;
 import com.mosquizto.api.dto.response.FolderSummaryResponse;
 import jakarta.validation.constraints.NotNull;
@@ -23,4 +25,8 @@ public interface FolderService {
     FolderResponse addCollection(Long folderId, Integer collectionId);
 
     void deleteCollection(@NotNull @Positive Long folderId, @NotNull @Positive Integer collectionId);
+
+    FolderMemberResponse shareFolder(Long folderId, ShareFolderRequest request);
+
+    List<FolderMemberResponse> getFolderMembers(Long folderId);
 }

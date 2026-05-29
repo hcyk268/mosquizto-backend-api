@@ -61,7 +61,19 @@ public class Folder extends AbstractEntity<Long> {
         return isOwnedBy(user);
     }
 
+    public boolean canView(User user, UserFolder membership) {
+        return isOwnedBy(user) || (membership != null && membership.canView());
+    }
+
     public boolean canManage(User user) {
+        return isOwnedBy(user);
+    }
+
+    public boolean canManage(User user, UserFolder membership) {
+        return isOwnedBy(user) || (membership != null && membership.canManage());
+    }
+
+    public boolean canDelete(User user) {
         return isOwnedBy(user);
     }
 

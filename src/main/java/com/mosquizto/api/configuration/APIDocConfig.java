@@ -28,7 +28,7 @@ public class APIDocConfig {
                 .servers(List.of(new Server().url(serverUrl).description(serverName)))
                 .info(new Info()
                         .title(title)
-                        .description("Mosquizto Backend API - Full documentation for all endpoints")
+                        .description("Mosquizto Backend API")
                         .version(version)
                         .contact(new Contact().name("Mosquizto Team"))
                         .license(new License().name("Apache 2.0").url("https://springdoc.org")))
@@ -39,6 +39,6 @@ public class APIDocConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("Enter your JWT access token here. Example: eyJhbGci...")));
+                                .description("JWT access token")));
     }
 }

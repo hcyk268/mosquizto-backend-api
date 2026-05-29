@@ -1,8 +1,10 @@
 package com.mosquizto.api.mapper;
 
 import com.mosquizto.api.dto.request.CollectionRequest;
+import com.mosquizto.api.dto.response.CollectionReportResponse;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.model.Collection;
+import com.mosquizto.api.model.CollectionReport;
 import com.mosquizto.api.model.User;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,19 @@ public class CollectionMapper {
                 .createdAt(collection.getCreatedAt())
                 .updatedAt(collection.getUpdatedAt())
                 .count(collection.getItemCount())
+                .build();
+    }
+
+    public CollectionReportResponse toResponse(CollectionReport report) {
+        return CollectionReportResponse.builder()
+                .id(report.getId())
+                .collectionId(report.getCollection().getId())
+                .reporterId(report.getReporter().getId())
+                .reason(report.getReason())
+                .description(report.getDescription())
+                .status(report.getStatus())
+                .createdAt(report.getCreatedAt())
+                .updatedAt(report.getUpdatedAt())
                 .build();
     }
 }
