@@ -10,6 +10,8 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionDocument;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.service.CollectionSearchService;
+import com.mosquizto.api.util.matching.TextMatcherResolver;
+import com.mosquizto.api.util.matching.TextMatcherType;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 
 import java.text.Normalizer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +42,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
 
     private final Client meiliClient;
     private final CollectionRepository collectionRepository;
+    private final TextMatcherResolver textMatcherResolver;
 
     @Override
     @PostConstruct
@@ -77,7 +81,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         );
 
         if (!shouldRunContainsSearch(query, primaryResult, pageSize)) {
-            return primaryResult;
+            return rerankResult(query, primaryResult);
         }
 
         SearchResultPaginated containsResult = executeSearch(
@@ -188,7 +192,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         addUniqueHits(mergedHits, primaryResult.getHits());
         addUniqueHits(mergedHits, containsResult.getHits());
 
-        List<Object> orderedHits = new ArrayList<>(mergedHits.values());
+        List<Object> orderedHits = rankHits(query, new ArrayList<>(mergedHits.values()));
         int fromIndex = Math.min(offset, orderedHits.size());
         int toIndex = Math.min(fromIndex + pageSize, orderedHits.size());
         List<Object> pagedHits = orderedHits.subList(fromIndex, toIndex);
@@ -209,6 +213,23 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         );
         resultPayload.put("facetDistribution", primaryResult.getFacetDistribution());
         resultPayload.put("facetStats", primaryResult.getFacetStats());
+
+        return GSON.fromJson(GSON.toJson(resultPayload), SearchResultPaginated.class);
+    }
+
+    private SearchResultPaginated rerankResult(String query, SearchResultPaginated result) {
+        List<Object> rerankedHits = rankHits(query, new ArrayList<>(result.getHits()));
+
+        Map<String, Object> resultPayload = new LinkedHashMap<>();
+        resultPayload.put("hits", rerankedHits);
+        resultPayload.put("query", result.getQuery());
+        resultPayload.put("page", result.getPage());
+        resultPayload.put("hitsPerPage", result.getHitsPerPage());
+        resultPayload.put("totalHits", result.getTotalHits());
+        resultPayload.put("totalPages", result.getTotalPages());
+        resultPayload.put("processingTimeMs", result.getProcessingTimeMs());
+        resultPayload.put("facetDistribution", result.getFacetDistribution());
+        resultPayload.put("facetStats", result.getFacetStats());
 
         return GSON.fromJson(GSON.toJson(resultPayload), SearchResultPaginated.class);
     }
@@ -241,6 +262,52 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         }
 
         return null;
+    }
+
+    private List<Object> rankHits(String query, List<Object> hits) {
+        if (query == null || query.isBlank() || hits.isEmpty()) {
+            return hits;
+        }
+
+        List<RankedHit> rankedHits = new ArrayList<>();
+        for (int index = 0; index < hits.size(); index++) {
+            Object hit = hits.get(index);
+            rankedHits.add(new RankedHit(hit, calculateRankingScore(query, hit), index));
+        }
+
+        rankedHits.sort(Comparator
+                .comparingDouble(RankedHit::score)
+                .reversed()
+                .thenComparingInt(RankedHit::originalIndex));
+
+        return rankedHits.stream()
+                .map(RankedHit::hit)
+                .toList();
+    }
+
+    private double calculateRankingScore(String query, Object hit) {
+        if (!(hit instanceof Map<?, ?> hitMap)) {
+            return 0d;
+        }
+
+        String title = extractString(hitMap.get("title"));
+        String description = extractString(hitMap.get("description"));
+        String normalizedQuery = normalizeText(query);
+        boolean singleTokenQuery = !normalizedQuery.contains(" ");
+
+        double titleCosine = textMatcherResolver.match(TextMatcherType.BAG_OF_WORDS_COSINE, query, title);
+        double descriptionCosine = textMatcherResolver.match(TextMatcherType.BAG_OF_WORDS_COSINE, query, description);
+        double titleDamerau = textMatcherResolver.match(TextMatcherType.DAMERAU_LEVENSHTEIN, query, title);
+
+        if (singleTokenQuery) {
+            return 0.55d * titleDamerau + 0.30d * titleCosine + 0.15d * descriptionCosine;
+        }
+
+        return 0.20d * titleDamerau + 0.50d * titleCosine + 0.30d * descriptionCosine;
+    }
+
+    private String extractString(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private String buildNgrams(String text) {
@@ -280,5 +347,8 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
                 .replaceAll("[^\\p{Alnum}\\s]", " ")
                 .replaceAll("\\s+", " ")
                 .trim();
+    }
+
+    private record RankedHit(Object hit, double score, int originalIndex) {
     }
 }

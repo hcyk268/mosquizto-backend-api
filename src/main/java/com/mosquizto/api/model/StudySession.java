@@ -1,6 +1,7 @@
 package com.mosquizto.api.model;
 
 import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.util.matching.TextMatcher;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -109,9 +110,11 @@ public class StudySession extends AbstractEntity<Long> {
                                            String submittedTerm,
                                            String submittedDefinition,
                                            Double responseTimeMs,
-                                           Boolean mode) {
+                                           Boolean mode,
+                                           TextMatcher textMatcher,
+                                           double threshold) {
         ensureAccepted(collectionItem);
-        boolean isCorrect = collectionItem.matchesAnswer(mode, submittedTerm, submittedDefinition);
+        boolean isCorrect = collectionItem.matchesAnswer(mode, submittedTerm, submittedDefinition, textMatcher, threshold);
         return recordAnswer(collectionItem, isCorrect, responseTimeMs, mode);
     }
 
