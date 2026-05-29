@@ -16,6 +16,12 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
     Page<StudySession> findAllByUserId(Long userId, Pageable pageable);
     java.util.List<StudySession> findAllByUserIdAndCollectionId(Long userId, Integer collectionId);
 
+    List<StudySession> findAllByUserIdOrderByStartedAtDesc(Long userId);
+
+    long countByUserId(Long userId);
+
+    long countByUserIdAndCompletedAtIsNotNull(Long userId);
+
     @Query("SELECT s FROM StudySession s " +
             "WHERE s.id IN (" +
             "  SELECT MAX(s2.id) FROM StudySession s2 " +
@@ -49,6 +55,15 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
     Long countCompletedCourseStudySessions(@Param("courseId") Long courseId,
                                            @Param("memberStatus") AccessStatus memberStatus,
                                            @Param("courseCollectionStatus") AccessStatus courseCollectionStatus);
+
+    @Query("SELECT COALESCE(SUM(s.totalCorrect), 0) FROM StudySession s WHERE s.user.id = :userId")
+    Long sumTotalCorrectByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT CASE WHEN COUNT(s) > 0 THEN true ELSE false END FROM StudySession s " +
+            "WHERE s.user.id = :userId " +
+            "AND COALESCE(s.totalCorrect, 0) > 0 " +
+            "AND COALESCE(s.totalWrong, 0) = 0")
+    boolean existsPerfectSessionByUserId(@Param("userId") Long userId);
 }
 
 

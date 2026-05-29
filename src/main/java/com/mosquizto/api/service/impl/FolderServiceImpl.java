@@ -1,7 +1,9 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CreateFolderRequest;
+import com.mosquizto.api.dto.request.ShareFolderRequest;
 import com.mosquizto.api.dto.request.UpdateFolderRequest;
+import com.mosquizto.api.dto.response.FolderMemberResponse;
 import com.mosquizto.api.dto.response.FolderResponse;
 import com.mosquizto.api.dto.response.FolderSummaryResponse;
 import com.mosquizto.api.exception.InvalidDataException;
@@ -11,16 +13,22 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.Folder;
 import com.mosquizto.api.model.FolderCollection;
 import com.mosquizto.api.model.User;
+import com.mosquizto.api.model.UserFolder;
 import com.mosquizto.api.repository.FolderCollectionRepository;
 import com.mosquizto.api.repository.FolderRepository;
+import com.mosquizto.api.repository.UserFolderRepository;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.FolderService;
+import com.mosquizto.api.service.UserService;
+import com.mosquizto.api.util.AccessStatus;
+import com.mosquizto.api.util.FolderRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.LinkedHashMap;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -30,10 +38,13 @@ public class FolderServiceImpl implements FolderService {
     private final CurrentUserProvider currentUserProvider;
     private final FolderRepository folderRepository;
     private final FolderCollectionRepository folderCollectionRepository;
+    private final UserFolderRepository userFolderRepository;
     private final FolderMapper folderMapper;
     private final CollectionService collectionService;
+    private final UserService userService;
 
     @Override
+    @Transactional
     public FolderResponse createFolder(CreateFolderRequest createFolderRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
@@ -43,21 +54,20 @@ public class FolderServiceImpl implements FolderService {
                 createFolderRequest.getDescription()
         );
 
-        this.folderRepository.save(folder);
+        Folder savedFolder = this.folderRepository.save(folder);
+        this.userFolderRepository.save(UserFolder.createOwner(user, savedFolder));
 
-        return this.folderMapper.toFolderResponse(folder);
+        return this.folderMapper.toFolderResponse(savedFolder);
     }
 
     @Override
     @Transactional
     public void deleteFolder(Long folderId) {
-
+        User user = this.currentUserProvider.getCurrentUser();
         Folder folder = this.folderRepository.findById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
-        User user = this.currentUserProvider.getCurrentUser();
-
-        if (!folder.canManage(user)) {
+        if (!folder.canDelete(user)) {
             throw new InvalidDataException("You do not have permission to delete this folder");
         }
 
@@ -70,7 +80,7 @@ public class FolderServiceImpl implements FolderService {
     public List<FolderSummaryResponse> getAllOwnFolder() {
         User user = this.currentUserProvider.getCurrentUser();
 
-        return this.folderRepository.findAllByCreatedByIdOrderByCreatedAtDesc(user.getId())
+        return this.folderRepository.findAllAccessibleByUserIdOrderByCreatedAtDesc(user.getId(), AccessStatus.ENABLE)
                 .stream()
                 .map(this.folderMapper::toFolderSummaryResponse)
                 .toList();
@@ -81,10 +91,11 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse getDetailFolder(Long folderId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdAndCreatedByIdWithCollections(folderId, user.getId())
+        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+        UserFolder membership = getMembership(user.getId(), folderId);
 
-        if (!folder.canView(user)) {
+        if (!folder.canView(user, membership)) {
             throw new InvalidDataException("You do not have permission to view this folder");
         }
 
@@ -96,8 +107,13 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse updateFolder(Long folderId, UpdateFolderRequest updateFolderRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdAndCreatedByIdWithCollections(folderId, user.getId())
+        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+        UserFolder membership = getMembership(user.getId(), folderId);
+
+        if (!folder.canManage(user, membership)) {
+            throw new InvalidDataException("You do not have permission to update this folder");
+        }
 
         boolean hasUpdatedField = false;
 
@@ -132,8 +148,13 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse addCollection(Long folderId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdAndCreatedById(folderId, user.getId())
+        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+        UserFolder membership = getMembership(user.getId(), folderId);
+
+        if (!folder.canManage(user, membership)) {
+            throw new InvalidDataException("You do not have permission to manage this folder");
+        }
 
         Collection collection = this.collectionService.getById(collectionId);
 
@@ -153,7 +174,7 @@ public class FolderServiceImpl implements FolderService {
 
         this.folderCollectionRepository.save(folderCollection);
 
-        Folder updatedFolder = this.folderRepository.findByIdAndCreatedByIdWithCollections(folderId, user.getId())
+        Folder updatedFolder = this.folderRepository.findByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         return folderMapper.toFolderResponse(updatedFolder);
@@ -164,8 +185,13 @@ public class FolderServiceImpl implements FolderService {
     public void deleteCollection(Long folderId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdAndCreatedById(folderId, user.getId())
+        Folder folder = this.folderRepository.findById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+        UserFolder membership = getMembership(user.getId(), folderId);
+
+        if (!folder.canManage(user, membership)) {
+            throw new InvalidDataException("You do not have permission to manage this folder");
+        }
 
         FolderCollection folderCollection = this.folderCollectionRepository.findByFolderIdAndCollectionId(folderId, collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in folder"));
@@ -173,5 +199,68 @@ public class FolderServiceImpl implements FolderService {
         folder.removeCollection(folderCollection.getCollection());
 
         this.folderCollectionRepository.delete(folderCollection);
+    }
+
+    @Override
+    @Transactional
+    public FolderMemberResponse shareFolder(Long folderId, ShareFolderRequest request) {
+        User owner = this.currentUserProvider.getCurrentUser();
+        Folder folder = this.folderRepository.findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+
+        if (!folder.isOwnedBy(owner)) {
+            throw new InvalidDataException("Only folder owner can share this folder");
+        }
+
+        if (FolderRole.OWNER.equals(request.getRole())) {
+            throw new InvalidDataException("Role OWNER is reserved for the folder creator");
+        }
+
+        User sharedUser = this.userService.getByUsername(request.getUsername());
+        if (folder.isOwnedBy(sharedUser)) {
+            throw new InvalidDataException("You cannot share this folder to yourself");
+        }
+
+        UserFolder membership = this.userFolderRepository
+                .findByUserIdAndFolderId(sharedUser.getId(), folderId)
+                .orElseGet(() -> UserFolder.createShared(sharedUser, folder, request.getRole()));
+
+        membership.changeRole(request.getRole());
+        membership.enable();
+
+        UserFolder savedMembership = this.userFolderRepository.save(membership);
+        return this.folderMapper.toFolderMemberResponse(savedMembership);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FolderMemberResponse> getFolderMembers(Long folderId) {
+        User user = this.currentUserProvider.getCurrentUser();
+        Folder folder = this.folderRepository.findById(folderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
+        UserFolder membership = getMembership(user.getId(), folderId);
+
+        if (!folder.canView(user, membership)) {
+            throw new InvalidDataException("You do not have permission to view this folder");
+        }
+
+        LinkedHashMap<Long, FolderMemberResponse> members = new LinkedHashMap<>();
+        members.put(folder.getCreatedBy().getId(), FolderMemberResponse.builder()
+                .userId(folder.getCreatedBy().getId())
+                .username(folder.getCreatedBy().getUsername())
+                .fullName(folder.getCreatedBy().getFullName())
+                .role(FolderRole.OWNER)
+                .build());
+
+        this.userFolderRepository.findAllActiveMembersByFolderId(folderId)
+                .forEach(userFolder -> members.putIfAbsent(
+                        userFolder.getUser().getId(), this.folderMapper.toFolderMemberResponse(userFolder)));
+
+        return List.copyOf(members.values());
+    }
+
+    private UserFolder getMembership(Long userId, Long folderId) {
+        return this.userFolderRepository.findByUserIdAndFolderId(userId, folderId)
+                .orElse(null);
     }
 }
