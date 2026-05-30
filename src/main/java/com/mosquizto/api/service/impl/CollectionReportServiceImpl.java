@@ -2,6 +2,7 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CollectionReportRequest;
 import com.mosquizto.api.dto.response.CollectionReportResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionMapper;
@@ -41,11 +42,11 @@ public class CollectionReportServiceImpl implements CollectionReportService {
                 .orElse(null);
 
         if (!collection.canView(reporter, membership)) {
-            throw new InvalidDataException("You do not have permission to report this collection");
+            throw new AccessDeniedException("You do not have permission to report this collection");
         }
 
         if (collection.isOwnedBy(reporter)) {
-            throw new InvalidDataException("You cannot report your own collection");
+            throw new AccessDeniedException("You cannot report your own collection");
         }
 
         String reason = cleanRequired(request.getReason(), "reason must be not blank");

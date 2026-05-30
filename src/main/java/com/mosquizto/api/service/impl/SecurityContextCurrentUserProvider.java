@@ -1,6 +1,7 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.exception.InvalidTokenException;
+import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
@@ -8,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,6 +33,6 @@ public class SecurityContextCurrentUserProvider implements CurrentUserProvider {
     @Override
     public User getCurrentUser() {
         return userRepository.findByUsername(getCurrentUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + getCurrentUsername()));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + getCurrentUsername()));
     }
 }

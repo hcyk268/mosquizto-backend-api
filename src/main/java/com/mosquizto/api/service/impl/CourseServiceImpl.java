@@ -8,6 +8,10 @@ import com.mosquizto.api.dto.response.CourseMemberResponse;
 import com.mosquizto.api.dto.response.CourseResponse;
 import com.mosquizto.api.dto.response.JoinResponse;
 import com.mosquizto.api.dto.response.PageResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.BusinessRuleException;
+import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CourseMapper;
@@ -138,7 +142,7 @@ public class CourseServiceImpl implements CourseService {
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
         if (!course.canView(currentUserCourse)) {
-            throw new InvalidDataException("You do not have permission to view this course");
+            throw new AccessDeniedException("You do not have permission to view this course");
         }
 
         return this.courseMapper.toResponse(course, currentUserCourse);
@@ -191,7 +195,7 @@ public class CourseServiceImpl implements CourseService {
         boolean accessibility = this.collectionService.isAccessible(collectionId);
 
         if (!accessibility) {
-            throw new InvalidDataException("You might not access this collection");
+            throw new AccessDeniedException("You might not access this collection");
         }
 
         int maxOrderIndex = this.courseCollectionRepository.findMaxOrderIndexCollection(courseId);
@@ -225,7 +229,7 @@ public class CourseServiceImpl implements CourseService {
         UserCourse currentUserCourse = this.getCurrentUserCourse(user.getId(), courseId).orElse(null);
 
         if (!course.canView(currentUserCourse)) {
-            throw new InvalidDataException("You do not have permission to view this course");
+            throw new AccessDeniedException("You do not have permission to view this course");
         }
 
         return this.getOrderedEnabledCollections(courseId);
@@ -274,7 +278,7 @@ public class CourseServiceImpl implements CourseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
 
         if (!joinRequest.isPending()) {
-            throw new InvalidDataException("Join request is not pending");
+            throw new BusinessRuleException(ErrorCode.JOIN_REQUEST_NOT_PENDING, "Join request is not pending");
         }
 
         joinRequest.approve();
@@ -294,11 +298,11 @@ public class CourseServiceImpl implements CourseService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found in course"));
 
         if (targetUserCourse.isTeacher()) {
-            throw new InvalidDataException("You can not remove teacher from course");
+            throw new BusinessRuleException(ErrorCode.CANNOT_REMOVE_TEACHER, "You can not remove teacher from course");
         }
 
         if (!targetUserCourse.isStudent() || !targetUserCourse.isEnabled()) {
-            throw new InvalidDataException("Student is not an active course member");
+            throw new BusinessRuleException(ErrorCode.MEMBER_NOT_ACTIVE, "Student is not an active course member");
         }
 
         targetUserCourse.deny();
@@ -334,7 +338,7 @@ public class CourseServiceImpl implements CourseService {
                 .orElse(null);
 
         if (!course.canView(currentUserCourse) || currentUserCourse == null || !currentUserCourse.isEnabled()) {
-            throw new InvalidDataException("Only course members can access course stats");
+            throw new AccessDeniedException("Only course members can access course stats");
         }
 
         List<StudySession> completedSessions = this.studySessionRepository.findCompletedCourseStudySessions(
@@ -368,7 +372,7 @@ public class CourseServiceImpl implements CourseService {
                 .orElse(null);
 
         if (!course.canView(currentUserCourse) || currentUserCourse == null || !currentUserCourse.isEnabled()) {
-            throw new InvalidDataException("Only course members can access course stats");
+            throw new AccessDeniedException("Only course members can access course stats");
         }
 
         return this.studySessionRepository.countCompletedCourseStudySessions(
@@ -388,7 +392,7 @@ public class CourseServiceImpl implements CourseService {
 
     private void validateManager(Course course, UserCourse userCourse, String message) {
         if (!course.canManage(userCourse)) {
-            throw new InvalidDataException(message);
+            throw new AccessDeniedException(message);
         }
     }
 

@@ -8,6 +8,8 @@ import com.mosquizto.api.dto.request.SignUpRequest;
 import com.mosquizto.api.dto.request.VerifyCodeRequest;
 import com.mosquizto.api.dto.response.ResetPasswordTokenResponse;
 import com.mosquizto.api.dto.response.TokenResponse;
+import com.mosquizto.api.exception.BusinessRuleException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.InvalidTokenException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
@@ -123,7 +125,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public String createAccount(SignUpRequest signUpRequest) {
         if (!signUpRequest.getPassword().equals(signUpRequest.getConfirmPassword()))
-            throw new InvalidDataException("Password not match");
+            throw new BusinessRuleException(ErrorCode.PASSWORD_MISMATCH, "Password not match");
 
         AddUserRequest user = this.authenticationMapper.toAddUserRequest(signUpRequest);
 
@@ -171,12 +173,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String otpKey = this.passwordResetOtpKey(user.getId());
         Object otp = this.redisTemplate.opsForHash().get(otpKey, OTP_FIELD);
         if (otp == null || !otp.toString().equals(verifyCodeRequest.getCode())) {
-            throw new InvalidDataException("Verify Code Invalid");
+            throw new BusinessRuleException(ErrorCode.INVALID_VERIFICATION_CODE, "Verify Code Invalid");
         }
 
         Long deletedOtp = this.redisTemplate.opsForHash().delete(otpKey, OTP_FIELD);
         if (deletedOtp == null || deletedOtp == 0) {
-            throw new InvalidDataException("Verify Code Invalid");
+            throw new BusinessRuleException(ErrorCode.INVALID_VERIFICATION_CODE, "Verify Code Invalid");
         }
 
         String resetToken = this.jwtService.generateResetToken(user);
@@ -188,7 +190,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public void resetPassword(ResetPasswordRequest resetPasswordRequest) {
 
         if (!resetPasswordRequest.getNewPassword().equals(resetPasswordRequest.getConfirmPassword()))
-            throw new InvalidDataException("Password not match");
+            throw new BusinessRuleException(ErrorCode.PASSWORD_MISMATCH, "Password not match");
 
         String username = this.jwtService.extractUsername(resetPasswordRequest.getSecretKey(), TokenType.RESET_TOKEN);
         var user = this.userService.getByUsername(username);

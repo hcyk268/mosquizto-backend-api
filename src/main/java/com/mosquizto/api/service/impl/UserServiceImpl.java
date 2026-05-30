@@ -5,7 +5,9 @@ import com.mosquizto.api.dto.request.ChangePasswordRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
-import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.exception.BusinessRuleException;
+import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.UserMapper;
 import com.mosquizto.api.model.Role;
@@ -17,7 +19,6 @@ import com.mosquizto.api.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +37,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getByUsername(String username) {
         return this.userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 
     @Override
@@ -45,10 +46,10 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Role must be not " + request.getRole()));
 
         if (this.userRepository.existsByUsername(request.getUsername())) {
-            throw new InvalidDataException("Username already exists");
+            throw new ConflictException(ErrorCode.DUPLICATE_USERNAME, "Username already exists");
         }
         if (this.userRepository.existsByEmail(request.getEmail())) {
-            throw new InvalidDataException("Email already exists");
+            throw new ConflictException(ErrorCode.DUPLICATE_EMAIL, "Email already exists");
         }
 
         User user = User.register(
@@ -77,7 +78,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public void confirmUser(long userId, String verifyCode) {
         User user = this.userRepository.findByIdAndVerifyCode(userId, verifyCode)
-                .orElseThrow(() -> new InvalidDataException("Invalid verification code or user not found"));
+                .orElseThrow(() -> new BusinessRuleException(ErrorCode.INVALID_VERIFICATION_CODE,
+                        "Invalid verification code or user not found"));
 
         user.activate(verifyCode);
         this.userRepository.save(user);
@@ -95,7 +97,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getByEmail(String email) {
         return this.userRepository.findByEmail(email)
-                .orElseThrow(() -> new InvalidDataException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @Override
@@ -123,12 +125,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public void changePassword(ChangePasswordRequest changePasswordRequest) {
         if (changePasswordRequest.getNewPassword().equals(changePasswordRequest.getOldPassword()))
-            throw new InvalidDataException("New password must be different from old password");
+            throw new BusinessRuleException(ErrorCode.PASSWORD_MISMATCH,
+                    "New password must be different from old password");
 
         User user = this.currentUserProvider.getCurrentUser();
 
         if (!passwordEncoder.matches(changePasswordRequest.getOldPassword(), user.getPassword())) {
-            throw new InvalidDataException("Old password wrong");
+            throw new BusinessRuleException(ErrorCode.PASSWORD_MISMATCH, "Old password wrong");
         }
 
         user.changePassword(this.passwordEncoder.encode(changePasswordRequest.getNewPassword()));
@@ -155,6 +158,6 @@ public class UserServiceImpl implements UserService {
     @Override
     public User getById(Long userId) {
         return this.userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

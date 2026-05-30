@@ -1,7 +1,7 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.response.StarredCollectionItemResponse;
-import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionItemMapper;
 import com.mosquizto.api.model.Collection;
@@ -77,7 +77,7 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
                 .orElse(null);
 
         if (!collection.canView(user, membership)) {
-            throw new InvalidDataException("You do not have permission to star this item");
+            throw new AccessDeniedException("You do not have permission to star this item");
         }
 
         return item;

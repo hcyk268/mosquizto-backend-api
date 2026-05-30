@@ -1,6 +1,7 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.service.IdempotencyService;
 import lombok.RequiredArgsConstructor;
@@ -51,7 +52,7 @@ public class IdempotencyServiceImpl implements IdempotencyService {
                 return awaitedResult;
             }
 
-            throw new ConflictException(operation + " request is already being processed");
+            throw new ConflictException(ErrorCode.IDEMPOTENCY_IN_PROGRESS, operation + " request is already being processed");
         }
 
         try {
@@ -145,7 +146,8 @@ public class IdempotencyServiceImpl implements IdempotencyService {
 
     private void ensureFingerprintMatches(String actualFingerprint, String expectedFingerprint, String operation) {
         if (!actualFingerprint.equals(expectedFingerprint)) {
-            throw new ConflictException("Idempotency-Key cannot be reused with a different " + operation + " payload");
+            throw new ConflictException(ErrorCode.IDEMPOTENCY_KEY_REUSED,
+                    "Idempotency-Key cannot be reused with a different " + operation + " payload");
         }
     }
 

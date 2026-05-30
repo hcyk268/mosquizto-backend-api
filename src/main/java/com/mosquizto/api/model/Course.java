@@ -1,5 +1,8 @@
 package com.mosquizto.api.model;
 
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CourseRole;
@@ -157,15 +160,15 @@ public class Course extends AbstractEntity<Long> {
         UserCourse existing = findUserCourse(user);
         if (existing != null) {
             if (existing.isEnabled()) {
-                throw new InvalidDataException("You have already joined this course");
+                throw new ConflictException(ErrorCode.ALREADY_JOINED, "You have already joined this course");
             }
 
             if (existing.isPending()) {
-                throw new InvalidDataException("Your join request is pending");
+                throw new ConflictException(ErrorCode.JOIN_REQUEST_PENDING, "Your join request is pending");
             }
 
             if (existing.isDenied()) {
-                throw new InvalidDataException("You are denied");
+                throw new AccessDeniedException(ErrorCode.JOIN_REQUEST_DENIED, "You are denied");
             }
         }
 
