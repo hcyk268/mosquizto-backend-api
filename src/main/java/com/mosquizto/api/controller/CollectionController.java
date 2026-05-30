@@ -82,7 +82,7 @@ public class CollectionController {
     @GetMapping("/create_index")
     public ResponseData<Void> createIndex()
     {
-        collectionSearchService.ReindexAll();
+        collectionSearchService.reindexAll();
         return new ResponseData<>(HttpStatus.OK.value(),"success");
     }
     @GetMapping("/recent-opened")

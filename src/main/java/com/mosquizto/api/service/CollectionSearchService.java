@@ -8,5 +8,5 @@ public interface CollectionSearchService {
     void upsert(Collection collection) ;
     void delete(Integer id) ;
     SearchResultPaginated search(String query, int page, int pageSize, String createdByUsername);
-    void ReindexAll();
+    void reindexAll();
 }
