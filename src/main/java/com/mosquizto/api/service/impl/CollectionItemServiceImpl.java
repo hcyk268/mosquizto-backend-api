@@ -2,6 +2,7 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CollectionItemRequest;
 import com.mosquizto.api.dto.response.CollectionItemResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionItemMapper;
@@ -43,7 +44,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         UserCollection membership = getMembership(collection.getId());
 
         if (!collection.canEdit(membership)) {
-            throw new InvalidDataException("Only editor and owner can add items to this collection");
+            throw new AccessDeniedException("Only editor and owner can add items to this collection");
         }
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
@@ -60,7 +61,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         UserCollection membership = getMembership(collectionId);
 
         if (!collection.canView(currentUser, membership)) {
-            throw new InvalidDataException("You do not have permission to see this collection");
+            throw new AccessDeniedException("You do not have permission to see this collection");
         }
 
         List<CollectionItem> items = this.collectionItemRepository.findByCollectionId(collectionId);
@@ -78,7 +79,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         UserCollection membership = getMembership(collection.getId());
 
         if (!collection.canEdit(membership)) {
-            throw new InvalidDataException("Only editor and owner can delete items in this collection");
+            throw new AccessDeniedException("Only editor and owner can delete items in this collection");
         }
 
         this.collectionItemRepository.delete(targetItem);
@@ -100,7 +101,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
 
         UserCollection membership = getMembership(collection.getId());
         if (!collection.canEdit(membership)) {
-            throw new InvalidDataException("Only editor and owner can edit items in this collection");
+            throw new AccessDeniedException("Only editor and owner can edit items in this collection");
         }
 
         this.collectionItemMapper.updateEntity(targetItem, request);

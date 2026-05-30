@@ -1,6 +1,7 @@
 package com.mosquizto.api.model;
 
-import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.exception.BusinessRuleException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.util.matching.TextMatcher;
 import jakarta.persistence.*;
 import lombok.*;
@@ -149,13 +150,15 @@ public class StudySession extends AbstractEntity<Long> {
 
     private void ensureActive() {
         if (isCompleted()) {
-            throw new InvalidDataException("This study session has already been completed");
+            throw new BusinessRuleException(ErrorCode.SESSION_ALREADY_COMPLETED,
+                    "This study session has already been completed");
         }
     }
 
     private void ensureAccepted(CollectionItem collectionItem) {
         if (!accepts(collectionItem)) {
-            throw new InvalidDataException("Invalid collection item in this session");
+            throw new BusinessRuleException(ErrorCode.INVALID_SESSION_ITEM,
+                    "Invalid collection item in this session");
         }
     }
 

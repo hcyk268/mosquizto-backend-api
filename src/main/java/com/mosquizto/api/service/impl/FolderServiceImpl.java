@@ -6,6 +6,9 @@ import com.mosquizto.api.dto.request.UpdateFolderRequest;
 import com.mosquizto.api.dto.response.FolderMemberResponse;
 import com.mosquizto.api.dto.response.FolderResponse;
 import com.mosquizto.api.dto.response.FolderSummaryResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.FolderMapper;
@@ -68,7 +71,7 @@ public class FolderServiceImpl implements FolderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         if (!folder.canDelete(user)) {
-            throw new InvalidDataException("You do not have permission to delete this folder");
+            throw new AccessDeniedException("You do not have permission to delete this folder");
         }
 
         this.folderCollectionRepository.deleteAllByFolderId(folderId);
@@ -96,7 +99,7 @@ public class FolderServiceImpl implements FolderService {
         UserFolder membership = getMembership(user.getId(), folderId);
 
         if (!folder.canView(user, membership)) {
-            throw new InvalidDataException("You do not have permission to view this folder");
+            throw new AccessDeniedException("You do not have permission to view this folder");
         }
 
         return this.folderMapper.toFolderResponse(folder);
@@ -112,7 +115,7 @@ public class FolderServiceImpl implements FolderService {
         UserFolder membership = getMembership(user.getId(), folderId);
 
         if (!folder.canManage(user, membership)) {
-            throw new InvalidDataException("You do not have permission to update this folder");
+            throw new AccessDeniedException("You do not have permission to update this folder");
         }
 
         boolean hasUpdatedField = false;
@@ -153,7 +156,7 @@ public class FolderServiceImpl implements FolderService {
         UserFolder membership = getMembership(user.getId(), folderId);
 
         if (!folder.canManage(user, membership)) {
-            throw new InvalidDataException("You do not have permission to manage this folder");
+            throw new AccessDeniedException("You do not have permission to manage this folder");
         }
 
         Collection collection = this.collectionService.getById(collectionId);
@@ -161,11 +164,11 @@ public class FolderServiceImpl implements FolderService {
         boolean accessibility = this.collectionService.isAccessible(collectionId);
 
         if (!accessibility){
-            throw new InvalidDataException("You might not access this collection");
+            throw new AccessDeniedException("You might not access this collection");
         }
 
         if (folder.containsCollection(collection)) {
-            throw new InvalidDataException("Collection is already exists in folder");
+            throw new ConflictException(ErrorCode.COLLECTION_ALREADY_IN_FOLDER, "Collection is already exists in folder");
         }
 
         int maxOrderIndex = this.folderCollectionRepository.findMaxOrderIndexCollection(folderId);
@@ -190,7 +193,7 @@ public class FolderServiceImpl implements FolderService {
         UserFolder membership = getMembership(user.getId(), folderId);
 
         if (!folder.canManage(user, membership)) {
-            throw new InvalidDataException("You do not have permission to manage this folder");
+            throw new AccessDeniedException("You do not have permission to manage this folder");
         }
 
         FolderCollection folderCollection = this.folderCollectionRepository.findByFolderIdAndCollectionId(folderId, collectionId)
@@ -209,7 +212,7 @@ public class FolderServiceImpl implements FolderService {
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         if (!folder.isOwnedBy(owner)) {
-            throw new InvalidDataException("Only folder owner can share this folder");
+            throw new AccessDeniedException("Only folder owner can share this folder");
         }
 
         if (FolderRole.OWNER.equals(request.getRole())) {
@@ -241,7 +244,7 @@ public class FolderServiceImpl implements FolderService {
         UserFolder membership = getMembership(user.getId(), folderId);
 
         if (!folder.canView(user, membership)) {
-            throw new InvalidDataException("You do not have permission to view this folder");
+            throw new AccessDeniedException("You do not have permission to view this folder");
         }
 
         LinkedHashMap<Long, FolderMemberResponse> members = new LinkedHashMap<>();

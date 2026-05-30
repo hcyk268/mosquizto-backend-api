@@ -3,7 +3,7 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
-import com.mosquizto.api.exception.InvalidDataException;
+import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
@@ -75,7 +75,7 @@ public class CollectionServiceImpl implements CollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
         User user = this.currentUserProvider.getCurrentUser();
         if (!collection.canView(user, getMembership(user.getId(), collection.getId()))) {
-            throw new InvalidDataException("You do not have permission to view this collection");
+            throw new AccessDeniedException("You do not have permission to view this collection");
         }
 
         userCollectionService.updateLastOpenedAt(user.getId(), id);
@@ -91,7 +91,7 @@ public class CollectionServiceImpl implements CollectionService {
 
         UserCollection membership = getMembership(user.getId(), collection.getId());
         if (!collection.canEdit(membership)) {
-            throw new InvalidDataException("Only editor and owner can edit this collection");
+            throw new AccessDeniedException("Only editor and owner can edit this collection");
         }
 
         this.collectionMapper.updateEntity(collection, request);
@@ -107,7 +107,7 @@ public class CollectionServiceImpl implements CollectionService {
 
         UserCollection membership = getMembership(user.getId(), id);
         if (!collection.canDelete(membership)) {
-            throw new InvalidDataException("Only the owner can delete this collection");
+            throw new AccessDeniedException("Only the owner can delete this collection");
         }
         collectionSearchService.delete(id);
         this.collectionRepository.deleteById(id);

@@ -11,6 +11,7 @@ import java.util.Date;
 public class ErrorResponseException implements Serializable {
     private Date timestamp;
     private int status;
+    private String code;
     private String path;
     private String error;
     private String message;

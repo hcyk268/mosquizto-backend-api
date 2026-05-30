@@ -1,6 +1,8 @@
 package com.mosquizto.api.model;
 
 
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.ConflictException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.util.AccessStatus;
@@ -86,11 +88,11 @@ public class UserCollection {
         validateUserAndCollection(user, collection);
 
         if (!collection.isPublic()) {
-            throw new InvalidDataException("Collection is private");
+            throw new AccessDeniedException("Collection is private");
         }
 
         if (collection.isOwnedBy(user)) {
-            throw new InvalidDataException("Owner does not need to join their own collection");
+            throw new ConflictException("Owner does not need to join their own collection");
         }
 
         return UserCollection.builder()
