@@ -10,12 +10,16 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.annotation.RequestScope;
 
 @Service
+@RequestScope
 @RequiredArgsConstructor
 public class SecurityContextCurrentUserProvider implements CurrentUserProvider {
 
     private final UserRepository userRepository;
+
+    private User cachedUser;
 
     @Override
     public String getCurrentUsername() {
@@ -32,7 +36,11 @@ public class SecurityContextCurrentUserProvider implements CurrentUserProvider {
 
     @Override
     public User getCurrentUser() {
-        return userRepository.findByUsername(getCurrentUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + getCurrentUsername()));
+        if (cachedUser == null) {
+            cachedUser = userRepository.findByUsername(getCurrentUsername())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found: " + getCurrentUsername()));
+        }
+
+        return cachedUser;
     }
 }
