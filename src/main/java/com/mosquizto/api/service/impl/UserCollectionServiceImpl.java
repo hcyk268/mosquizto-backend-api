@@ -2,6 +2,9 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.MemberResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.ConflictException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.UserCollectionMapper;
@@ -43,7 +46,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isOwnedBy(usernameOwner)) {
-            throw new InvalidDataException("You do not have permission to share this collection");
+            throw new AccessDeniedException("You do not have permission to share this collection");
         }
 
         if (usernameOwner.equals(shareCollectionRequest.getUsername())) {
@@ -77,7 +80,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     .orElse(null);
 
             if (membership == null || !membership.canView()) {
-                throw new InvalidDataException("You can not access members list");
+                throw new AccessDeniedException("You can not access members list");
             }
         }
 
@@ -100,11 +103,11 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isPublic()) {
-            throw new InvalidDataException("Collection is private");
+            throw new AccessDeniedException("Collection is private");
         }
 
         if (collection.isOwnedBy(user)) {
-            throw new InvalidDataException("You joined before");
+            throw new ConflictException(ErrorCode.ALREADY_JOINED, "You joined before");
         }
 
         UserCollectionId id = UserCollectionId.builder()
@@ -115,15 +118,15 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         UserCollection existingMembership = this.userCollectionRepository.findById(id).orElse(null);
         if (existingMembership != null) {
             if (existingMembership.isActive()) {
-                throw new InvalidDataException("You have already joined this collection");
+                throw new ConflictException(ErrorCode.ALREADY_JOINED, "You have already joined this collection");
             }
 
             if (existingMembership.isPending()) {
-                throw new InvalidDataException("Your join request is pending");
+                throw new ConflictException(ErrorCode.JOIN_REQUEST_PENDING, "Your join request is pending");
             }
 
             if (existingMembership.isDenied()) {
-                throw new InvalidDataException("You are denied");
+                throw new AccessDeniedException(ErrorCode.JOIN_REQUEST_DENIED, "You are denied");
             }
         }
 
@@ -141,7 +144,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isOwnedBy(username) || collection.isOwnedBy(user)) {
-            throw new InvalidDataException("You cannot remove");
+            throw new AccessDeniedException("You cannot remove");
         }
 
         UserCollectionId idDelete = UserCollectionId.builder()
@@ -163,7 +166,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
         if (!request.getCollection().isOwnedBy(ownerUsername)) {
-            throw new InvalidDataException("Only owner can approve requests");
+            throw new AccessDeniedException("Only owner can approve requests");
         }
 
         if (status == AccessStatus.DENIED) {

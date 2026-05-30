@@ -102,7 +102,7 @@ public class AuthenticationController {
     @ApiResponse(responseCode = "200", description = "Logged in")
     @RateLimit(action = "google-login", maxRequests = 5, timeWindow = 60)
     @PostMapping("/google")
-    public ResponseData<TokenResponse> loginGoogle(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) throws Exception {
+    public ResponseData<TokenResponse> loginGoogle(@Valid @RequestBody GoogleLoginRequest googleLoginRequest) {
         GoogleIdToken.Payload payload = this.googleVerifier.verify(googleLoginRequest.getIdToken());
         return new ResponseData<>(HttpStatus.OK.value(), "Login successfully", this.authenticationService.loginGoogle(payload));
     }

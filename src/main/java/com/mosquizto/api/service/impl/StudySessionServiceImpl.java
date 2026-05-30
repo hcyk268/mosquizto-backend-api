@@ -4,6 +4,9 @@ import com.mosquizto.api.dto.request.AnswerRequest;
 import com.mosquizto.api.dto.request.StartStudySessionRequest;
 import com.mosquizto.api.dto.request.StudySessionDetailRequest;
 import com.mosquizto.api.dto.response.*;
+import com.mosquizto.api.exception.AccessDeniedException;
+import com.mosquizto.api.exception.BusinessRuleException;
+import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.StudySessionMapper;
@@ -97,7 +100,7 @@ public class StudySessionServiceImpl implements StudySessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
         if (!studySession.canBeViewedBy(username)) {
-            throw new InvalidDataException("You do not have permission to view in this session");
+            throw new AccessDeniedException("You do not have permission to view in this session");
         }
 
         List<StudySessionDetail> details = studySessionDetailRepository
@@ -191,7 +194,7 @@ public class StudySessionServiceImpl implements StudySessionService {
                 : studySession.canBeAnsweredBy(username);
 
         if (!canProceed) {
-            throw new InvalidDataException("You do not have permission to process this session");
+            throw new AccessDeniedException("You do not have permission to process this session");
         }
 
         for (StudySessionDetailRequest request : detailRequests) {
@@ -199,7 +202,8 @@ public class StudySessionServiceImpl implements StudySessionService {
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + request.getItemId()));
 
             if (!studySession.accepts(ci)) {
-                throw new InvalidDataException("Invalid collection item in this session");
+                throw new BusinessRuleException(ErrorCode.INVALID_SESSION_ITEM,
+                        "Invalid collection item in this session");
             }
 
             studySession.recordAnswer(
@@ -245,7 +249,7 @@ public class StudySessionServiceImpl implements StudySessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
         if (!studySession.canBeAnsweredBy(user.getUsername())) {
-            throw new InvalidDataException("You do not have permission to answer in this session");
+            throw new AccessDeniedException("You do not have permission to answer in this session");
         }
 
         Integer collectionId = studySession.getCollection().getId();
@@ -286,7 +290,7 @@ public class StudySessionServiceImpl implements StudySessionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
 
         if (!studySession.canBeCompletedBy(username)) {
-            throw new InvalidDataException("You do not have permission to complete in this session");
+            throw new AccessDeniedException("You do not have permission to complete in this session");
         }
 
         studySession.completeNow();

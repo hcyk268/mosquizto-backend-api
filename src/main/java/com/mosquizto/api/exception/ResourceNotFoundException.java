@@ -1,7 +1,12 @@
 package com.mosquizto.api.exception;
 
-public class ResourceNotFoundException extends RuntimeException {
+public class ResourceNotFoundException extends AppException {
+
     public ResourceNotFoundException(String message) {
-        super(message);
+        super(ErrorCode.RESOURCE_NOT_FOUND, message);
+    }
+
+    public ResourceNotFoundException(ErrorCode errorCode, String message) {
+        super(errorCode, message);
     }
 }

@@ -103,6 +103,7 @@ public class PreFilter extends OncePerRequestFilter {
         ErrorResponseException errorResponse = new ErrorResponseException();
         errorResponse.setTimestamp(new Date());
         errorResponse.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        errorResponse.setCode("INVALID_TOKEN");
         errorResponse.setPath(request.getRequestURI());
         errorResponse.setError("Unauthorized");
         errorResponse.setMessage(message);
