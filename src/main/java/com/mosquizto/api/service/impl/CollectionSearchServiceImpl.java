@@ -12,12 +12,11 @@ import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.util.matching.TextMatcherResolver;
 import com.mosquizto.api.util.matching.TextMatcherType;
+import com.mosquizto.api.util.matching.TextNormalizer;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -98,7 +97,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
     }
 
     @Override
-    public void ReindexAll() {
+    public void reindexAll() {
         log.info("Starting lazy reindex for Meilisearch...");
         configureIndex();
 
@@ -174,7 +173,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
             return false;
         }
 
-        if (normalizeText(query).length() < MIN_CONTAINS_QUERY_LENGTH) {
+        if (TextNormalizer.normalize(query).length() < MIN_CONTAINS_QUERY_LENGTH) {
             return false;
         }
 
@@ -292,7 +291,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
 
         String title = extractString(hitMap.get("title"));
         String description = extractString(hitMap.get("description"));
-        String normalizedQuery = normalizeText(query);
+        String normalizedQuery = TextNormalizer.normalize(query);
         boolean singleTokenQuery = !normalizedQuery.contains(" ");
 
         double titleCosine = textMatcherResolver.match(TextMatcherType.BAG_OF_WORDS_COSINE, query, title);
@@ -311,7 +310,7 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
     }
 
     private String buildNgrams(String text) {
-        String normalized = normalizeText(text);
+        String normalized = TextNormalizer.normalize(text, MAX_NGRAM_SOURCE_LENGTH);
         if (normalized.isBlank()) {
             return "";
         }
@@ -329,24 +328,6 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         }
 
         return String.join(" ", grams);
-    }
-
-    private String normalizeText(String text) {
-        if (text == null) {
-            return "";
-        }
-
-        String limited = text.length() > MAX_NGRAM_SOURCE_LENGTH
-                ? text.substring(0, MAX_NGRAM_SOURCE_LENGTH)
-                : text;
-
-        String decomposed = Normalizer.normalize(limited, Normalizer.Form.NFD);
-        return decomposed
-                .replaceAll("\\p{M}+", "")
-                .toLowerCase()
-                .replaceAll("[^\\p{Alnum}\\s]", " ")
-                .replaceAll("\\s+", " ")
-                .trim();
     }
 
     private record RankedHit(Object hit, double score, int originalIndex) {

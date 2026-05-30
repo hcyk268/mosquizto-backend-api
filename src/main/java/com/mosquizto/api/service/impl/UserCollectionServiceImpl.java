@@ -188,10 +188,4 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     userCollectionRepository.save(userCollection);
                 });
     }
-
-    @Override
-    public List<UserCollection> getRecentOpenedCollection() {
-        Long userId = currentUserProvider.getCurrentUser().getId();
-        return userCollectionRepository.findTop10ByUserIdOrderByLastOpenedAtDesc(userId);
-    }
 }

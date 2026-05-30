@@ -1,7 +1,6 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.response.StarredCollectionItemResponse;
-import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionItemMapper;
 import com.mosquizto.api.model.Collection;
@@ -11,8 +10,8 @@ import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.UserCollectionItemStar;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.UserCollectionItemStarRepository;
-import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionItemStarService;
+import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,9 +25,9 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
 
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemRepository collectionItemRepository;
-    private final UserCollectionRepository userCollectionRepository;
     private final UserCollectionItemStarRepository starRepository;
     private final CollectionItemMapper collectionItemMapper;
+    private final CollectionMembershipResolver membershipResolver;
 
     @Override
     @Transactional
@@ -70,24 +69,13 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
     private CollectionItem getAccessibleItem(User user, Integer itemId) {
         CollectionItem item = this.collectionItemRepository.findById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection item not found"));
-        Collection collection = item.getCollection();
 
-        UserCollection membership = this.userCollectionRepository
-                .findByUserIdAndCollectionId(user.getId(), collection.getId())
-                .orElse(null);
-
-        if (!collection.canView(user, membership)) {
-            throw new AccessDeniedException("You do not have permission to star this item");
-        }
-
+        membershipResolver.requireCanView(item.getCollection(), user);
         return item;
     }
 
     private boolean canView(User user, Collection collection) {
-        UserCollection membership = this.userCollectionRepository
-                .findByUserIdAndCollectionId(user.getId(), collection.getId())
-                .orElse(null);
-
+        UserCollection membership = membershipResolver.getMembership(user.getId(), collection.getId());
         return collection.canView(user, membership);
     }
 }

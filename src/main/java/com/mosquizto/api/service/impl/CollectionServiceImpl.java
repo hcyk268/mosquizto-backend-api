@@ -3,7 +3,6 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
-import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
@@ -11,6 +10,7 @@ import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
+import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CollectionService;
 import com.mosquizto.api.service.CurrentUserProvider;
@@ -31,8 +31,9 @@ public class CollectionServiceImpl implements CollectionService {
     private final CurrentUserProvider currentUserProvider;
     private final CollectionMapper collectionMapper;
     private final UserCollectionRepository userCollectionRepository;
-    private  final UserCollectionService userCollectionService ;
-    private final CollectionSearchService collectionSearchService ;
+    private final UserCollectionService userCollectionService;
+    private final CollectionSearchService collectionSearchService;
+    private final CollectionMembershipResolver membershipResolver;
 
     @Override
     @Transactional
@@ -74,9 +75,7 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
         User user = this.currentUserProvider.getCurrentUser();
-        if (!collection.canView(user, getMembership(user.getId(), collection.getId()))) {
-            throw new AccessDeniedException("You do not have permission to view this collection");
-        }
+        membershipResolver.requireCanView(collection, user);
 
         userCollectionService.updateLastOpenedAt(user.getId(), id);
         return this.collectionMapper.toResponse(collection);
@@ -89,10 +88,7 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        UserCollection membership = getMembership(user.getId(), collection.getId());
-        if (!collection.canEdit(membership)) {
-            throw new AccessDeniedException("Only editor and owner can edit this collection");
-        }
+        membershipResolver.requireCanEdit(collection, user);
 
         this.collectionMapper.updateEntity(collection, request);
         var updatedCollection = collectionRepository.save(collection);
@@ -105,10 +101,8 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        UserCollection membership = getMembership(user.getId(), id);
-        if (!collection.canDelete(membership)) {
-            throw new AccessDeniedException("Only the owner can delete this collection");
-        }
+        membershipResolver.requireCanDelete(collection, user);
+
         collectionSearchService.delete(id);
         this.collectionRepository.deleteById(id);
     }
@@ -132,8 +126,8 @@ public class CollectionServiceImpl implements CollectionService {
                 .toList();
 
         return PageResponse.<CollectionResponse>builder()
-                .page(collectionPage.getTotalPages())
-                .size(collectionPage.getSize())
+                .page(page)
+                .size(size)
                 .totalElements(collectionPage.getTotalElements())
                 .totalPages(collectionPage.getTotalPages())
                 .items(items)
@@ -156,11 +150,7 @@ public class CollectionServiceImpl implements CollectionService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        return collection.canView(user, getMembership(user.getId(), collectionId));
-    }
-
-    private UserCollection getMembership(Long userId, Integer collectionId) {
-        return this.userCollectionRepository.findByUserIdAndCollectionId(userId, collectionId)
-                .orElse(null);
+        UserCollection membership = membershipResolver.getMembership(user.getId(), collectionId);
+        return collection.canView(user, membership);
     }
 }

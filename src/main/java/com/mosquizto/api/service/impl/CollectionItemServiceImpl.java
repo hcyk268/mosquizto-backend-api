@@ -9,11 +9,10 @@ import com.mosquizto.api.mapper.CollectionItemMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.User;
-import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.repository.CollectionItemRepository;
 import com.mosquizto.api.repository.CollectionRepository;
-import com.mosquizto.api.repository.UserCollectionRepository;
 import com.mosquizto.api.service.CollectionItemService;
+import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CollectionSearchService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
@@ -33,19 +32,16 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private final CollectionRepository collectionRepository;
     private final CurrentUserProvider currentUserProvider;
     private final CollectionItemMapper collectionItemMapper;
-    private final UserCollectionRepository userCollectionRepository;
     private final UserCollectionService userCollectionService;
     private final CollectionSearchService collectionSearchService;
+    private final CollectionMembershipResolver membershipResolver;
 
     @Override
     @Transactional
     public CollectionItemResponse addNewItem(CollectionItemRequest request) {
         Collection collection = findCollectionById(request.getCollectionId());
-        UserCollection membership = getMembership(collection.getId());
-
-        if (!collection.canEdit(membership)) {
-            throw new AccessDeniedException("Only editor and owner can add items to this collection");
-        }
+        User user = this.currentUserProvider.getCurrentUser();
+        membershipResolver.requireCanEdit(collection, user);
 
         CollectionItem newItem = this.collectionItemMapper.toEntity(request, collection);
         collection.increaseItemCount();
@@ -58,11 +54,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     public List<CollectionItemResponse> getItemsByCollectionId(Integer collectionId) {
         Collection collection = findCollectionById(collectionId);
         User currentUser = this.currentUserProvider.getCurrentUser();
-        UserCollection membership = getMembership(collectionId);
-
-        if (!collection.canView(currentUser, membership)) {
-            throw new AccessDeniedException("You do not have permission to see this collection");
-        }
+        membershipResolver.requireCanView(collection, currentUser);
 
         List<CollectionItem> items = this.collectionItemRepository.findByCollectionId(collectionId);
         this.userCollectionService.updateLastOpenedAt(currentUser.getId(), collectionId);
@@ -76,11 +68,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     public CollectionItemResponse deleteCollectionItem(Integer id) {
         CollectionItem targetItem = getItemById(id);
         Collection collection = targetItem.getCollection();
-        UserCollection membership = getMembership(collection.getId());
-
-        if (!collection.canEdit(membership)) {
-            throw new AccessDeniedException("Only editor and owner can delete items in this collection");
-        }
+        User user = this.currentUserProvider.getCurrentUser();
+        membershipResolver.requireCanEdit(collection, user);
 
         this.collectionItemRepository.delete(targetItem);
         collection.decreaseItemCount();
@@ -99,10 +88,8 @@ public class CollectionItemServiceImpl implements CollectionItemService {
             throw new InvalidDataException("Item does not belong to this collection");
         }
 
-        UserCollection membership = getMembership(collection.getId());
-        if (!collection.canEdit(membership)) {
-            throw new AccessDeniedException("Only editor and owner can edit items in this collection");
-        }
+        User user = this.currentUserProvider.getCurrentUser();
+        membershipResolver.requireCanEdit(collection, user);
 
         this.collectionItemMapper.updateEntity(targetItem, request);
         CollectionItem savedItem = collectionItemRepository.save(targetItem);
@@ -119,11 +106,5 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private CollectionItem getItemById(Integer id) {
         return collectionItemRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
-    }
-
-    private UserCollection getMembership(Integer collectionId) {
-        User currentUser = currentUserProvider.getCurrentUser();
-        return userCollectionRepository.findByUserIdAndCollectionId(currentUser.getId(), collectionId)
-                .orElse(null);
     }
 }

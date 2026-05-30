@@ -9,10 +9,9 @@ import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionReport;
 import com.mosquizto.api.model.User;
-import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.repository.CollectionReportRepository;
 import com.mosquizto.api.repository.CollectionRepository;
-import com.mosquizto.api.repository.UserCollectionRepository;
+import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CollectionReportService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import lombok.RequiredArgsConstructor;
@@ -26,9 +25,9 @@ public class CollectionReportServiceImpl implements CollectionReportService {
 
     private final CurrentUserProvider currentUserProvider;
     private final CollectionRepository collectionRepository;
-    private final UserCollectionRepository userCollectionRepository;
     private final CollectionReportRepository collectionReportRepository;
     private final CollectionMapper collectionMapper;
+    private final CollectionMembershipResolver membershipResolver;
 
     @Override
     @Transactional
@@ -37,13 +36,7 @@ public class CollectionReportServiceImpl implements CollectionReportService {
         Collection collection = this.collectionRepository.findById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        UserCollection membership = this.userCollectionRepository
-                .findByUserIdAndCollectionId(reporter.getId(), collectionId)
-                .orElse(null);
-
-        if (!collection.canView(reporter, membership)) {
-            throw new AccessDeniedException("You do not have permission to report this collection");
-        }
+        membershipResolver.requireCanView(collection, reporter);
 
         if (collection.isOwnedBy(reporter)) {
             throw new AccessDeniedException("You cannot report your own collection");
