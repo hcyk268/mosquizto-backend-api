@@ -13,6 +13,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 
 @Setter
@@ -133,6 +134,17 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
         }
 
         activate();
+    }
+
+    public boolean canDelete(User user) {
+        return user != null
+                && user.getId() != null
+                && (user.getId().equals(this.getId()) || user.getRole().getName().equals("ADMIN"));
+    }
+
+    public void delete(User userBy) {
+       this.setDeletedAt(new Date());
+       this.setDeletedBy(userBy);
     }
 
     @Override

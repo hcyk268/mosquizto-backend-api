@@ -96,8 +96,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     public StudySessionDetailsResponse getSessionDetails(Long sessionId) {
         String username = this.currentUserProvider.getCurrentUsername();
 
-        StudySession studySession = studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
+        StudySession studySession = getActiveStudySession(sessionId);
 
         if (!studySession.canBeViewedBy(username)) {
             throw new AccessDeniedException("You do not have permission to view in this session");
@@ -160,7 +159,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionService.getById(collectionId);
 
-        List<StudySession> sessions = this.studySessionRepository.findAllByUserIdAndCollectionId(user.getId(), collectionId);
+        List<StudySession> sessions = this.studySessionRepository.findAllActiveByUserIdAndCollectionId(user.getId(), collectionId);
 
         int totalCorrect = this.studySessionStatsCalculator.getTotalCorect(sessions);
         int totalWrong = this.studySessionStatsCalculator.getTotalWrong(sessions);
@@ -185,8 +184,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     @Transactional
     public StudySessionResultResponse completeBatch(Long sessionId, List<StudySessionDetailRequest> detailRequests,boolean isFullTest) {
 
-        StudySession studySession = studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
+        StudySession studySession = getActiveStudySession(sessionId);
 
         String username = this.currentUserProvider.getCurrentUsername();
         boolean canProceed = isFullTest
@@ -243,14 +241,14 @@ public class StudySessionServiceImpl implements StudySessionService {
     public void deleteStudySession(Long studySessionId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
 
-        StudySession studySession = this.studySessionRepository.findById(studySessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + studySessionId));
+        StudySession studySession = getActiveStudySession(studySessionId);
 
         if (!studySession.canDeleteBy(currentUser.getUsername())) {
             throw new AccessDeniedException(ErrorCode.ACCESS_DENIED, "You do not have permission to delete this session");
         }
 
-        this.studySessionRepository.deleteById(studySessionId);
+        studySession.delete(currentUser);
+        this.studySessionRepository.save(studySession);
     }
 
     private Long doStartStudySession(StartStudySessionRequest startStudySession, User user) {
@@ -261,8 +259,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     }
 
     private AnswerResultResponse doAnswerItems(Long sessionId, AnswerRequest answerRequest, User user) {
-        StudySession studySession = this.studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
+        StudySession studySession = getActiveStudySession(sessionId);
 
         if (!studySession.canBeAnsweredBy(user.getUsername())) {
             throw new AccessDeniedException("You do not have permission to answer in this session");
@@ -302,8 +299,7 @@ public class StudySessionServiceImpl implements StudySessionService {
     }
 
     private StudySessionResultResponse doCompleteStudySession(Long sessionId, String username) {
-        StudySession studySession = studySessionRepository.findById(sessionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
+        StudySession studySession = getActiveStudySession(sessionId);
 
         if (!studySession.canBeCompletedBy(username)) {
             throw new AccessDeniedException("You do not have permission to complete in this session");
@@ -336,6 +332,11 @@ public class StudySessionServiceImpl implements StudySessionService {
 
     private String normalizeFingerprintValue(String value) {
         return value == null ? "" : value.trim();
+    }
+
+    private StudySession getActiveStudySession(Long sessionId) {
+        return this.studySessionRepository.findActiveById(sessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + sessionId));
     }
 
     private <T> T executeInTransaction(Supplier<T> action) {

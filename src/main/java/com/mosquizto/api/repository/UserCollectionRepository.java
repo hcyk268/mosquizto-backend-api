@@ -87,6 +87,8 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
 
     @Query("select count(uc) > 0 from UserCollection uc " +
             "where uc.id = :id " +
-            "and uc.deletedAt is null")
+            "and uc.deletedAt is null " +
+            "and uc.user.deletedAt is null " +
+            "and uc.collection.deletedAt is null")
     boolean existsActiveById(@Param("id") UserCollectionId id);
 }

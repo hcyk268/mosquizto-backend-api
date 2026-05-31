@@ -144,6 +144,16 @@ public class UserCollection {
         this.lastOpenedAt = date != null ? date : new Date();
     }
 
+    public void delete(User deleteBy) {
+        this.deletedAt = new Date();
+        this.deletedBy = deleteBy;
+    }
+
+    public void restore() {
+        this.deletedAt = null;
+        this.deletedBy = null;
+    }
+
     public boolean isOwner() {
         return CollectionRole.OWNER.equals(this.role);
     }

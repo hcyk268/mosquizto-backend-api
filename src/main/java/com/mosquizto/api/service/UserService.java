@@ -6,6 +6,8 @@ import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
 import com.mosquizto.api.model.User;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 public interface UserService {
 
@@ -34,4 +36,6 @@ public interface UserService {
     void updateUser(UpdateUserRequest updateUserRequest);
 
     User getById(Long userId);
+
+    void deleteUser(@Valid @Positive Long userId);
 }
