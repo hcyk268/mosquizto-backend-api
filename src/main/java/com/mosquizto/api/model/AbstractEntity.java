@@ -26,4 +26,11 @@ public abstract class AbstractEntity<T extends Serializable> implements Serializ
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Date updatedAt;
+
+    @Column(name = "deleted_at")
+    private Date deletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
 }

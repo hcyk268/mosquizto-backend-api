@@ -59,6 +59,13 @@ public class UserCollection {
     @UpdateTimestamp
     private Date updatedAt;
 
+    @Column(name = "deleted_at")
+    private Date deletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
     public static UserCollection createOwner(User user, Collection collection) {
         validateUserAndCollection(user, collection);
 

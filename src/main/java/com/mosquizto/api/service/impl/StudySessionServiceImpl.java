@@ -104,7 +104,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         }
 
         List<StudySessionDetail> details = studySessionDetailRepository
-                .findAllByStudySessionIdOrderByIdAsc(sessionId);
+                .findAllActiveByStudySessionId(sessionId);
 
         return this.studySessionMapper.toDetailsResponse(studySession, details);
     }
@@ -198,7 +198,7 @@ public class StudySessionServiceImpl implements StudySessionService {
         }
 
         for (StudySessionDetailRequest request : detailRequests) {
-            CollectionItem ci = collectionItemRepository.findById(request.getItemId())
+            CollectionItem ci = collectionItemRepository.findActiveById(request.getItemId())
                     .orElseThrow(() -> new ResourceNotFoundException("Item not found: " + request.getItemId()));
 
             if (!studySession.accepts(ci)) {
@@ -237,6 +237,22 @@ public class StudySessionServiceImpl implements StudySessionService {
         });
         return responses;
     }
+
+    @Override
+    @Transactional
+    public void deleteStudySession(Long studySessionId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+
+        StudySession studySession = this.studySessionRepository.findById(studySessionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Study session not found with id: " + studySessionId));
+
+        if (!studySession.canDeleteBy(currentUser.getUsername())) {
+            throw new AccessDeniedException(ErrorCode.ACCESS_DENIED, "You do not have permission to delete this session");
+        }
+
+        this.studySessionRepository.deleteById(studySessionId);
+    }
+
     private Long doStartStudySession(StartStudySessionRequest startStudySession, User user) {
         Collection collection = this.collectionService.getById(startStudySession.getCollectionId());
         StudySession studySession = StudySession.start(user, collection, new Date());
@@ -256,11 +272,11 @@ public class StudySessionServiceImpl implements StudySessionService {
         CollectionItem collectionItem;
 
         if (Boolean.TRUE.equals(answerRequest.getMode())) {
-            collectionItem = this.collectionItemRepository.findByCollectionIdAndTerm(collectionId, answerRequest.getTerm())
+            collectionItem = this.collectionItemRepository.findActiveByCollectionIdAndTerm(collectionId, answerRequest.getTerm())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Collection item not found with term: " + answerRequest.getTerm()));
         } else {
-            collectionItem = this.collectionItemRepository.findByCollectionIdAndDefinition(collectionId, answerRequest.getDefinition())
+            collectionItem = this.collectionItemRepository.findActiveByCollectionIdAndDefinition(collectionId, answerRequest.getDefinition())
                     .orElseThrow(() -> new ResourceNotFoundException(
                             "Collection item not found with term: " + answerRequest.getDefinition()));
         }

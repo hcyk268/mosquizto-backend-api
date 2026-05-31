@@ -80,8 +80,8 @@ public class UserEngagementServiceImpl implements UserEngagementService {
         TreeSet<LocalDate> studyDates = getStudyDatesDesc(sessions);
 
         long totalStudySessions = this.studySessionRepository.countByUserId(user.getId());
-        long createdCollections = this.collectionRepository.countByCreatedById(user.getId());
-        long starredItems = this.starRepository.countByUserId(user.getId());
+        long createdCollections = this.collectionRepository.countActiveByCreatorId(user.getId());
+        long starredItems = this.starRepository.countActiveByUserId(user.getId());
         long totalCorrect = this.studySessionRepository.sumTotalCorrectByUserId(user.getId());
         boolean hasPerfectSession = this.studySessionRepository.existsPerfectSessionByUserId(user.getId());
         int longestStreak = calculateLongestStreak(studyDates);
@@ -128,12 +128,12 @@ public class UserEngagementServiceImpl implements UserEngagementService {
                         this.userMapper.toStudySessionActivityResponse(session, activityDate(session))));
 
         this.collectionRepository
-                .findAllByCreatedById(user.getId(), PageRequest.of(0, fetchSize, Sort.by(Sort.Direction.DESC, "createdAt")))
+                .findAllActiveByCreatorId(user.getId(), PageRequest.of(0, fetchSize, Sort.by(Sort.Direction.DESC, "createdAt")))
                 .getContent()
                 .forEach(collection -> activities.add(this.userMapper.toCollectionCreatedActivityResponse(collection)));
 
         this.starRepository
-                .findRecentByUserId(user.getId(), PageRequest.of(0, fetchSize))
+                .findRecentActiveByUserId(user.getId(), PageRequest.of(0, fetchSize))
                 .forEach(star -> activities.add(this.userMapper.toStarActivityResponse(star)));
 
         activities.sort(this::compareActivityDesc);
@@ -144,8 +144,8 @@ public class UserEngagementServiceImpl implements UserEngagementService {
         List<UserActivityResponse> items = activities.subList(fromIndex, toIndex);
 
         long totalElements = this.studySessionRepository.countByUserId(user.getId())
-                + this.collectionRepository.countByCreatedById(user.getId())
-                + this.starRepository.countByUserId(user.getId());
+                + this.collectionRepository.countActiveByCreatorId(user.getId())
+                + this.starRepository.countActiveByUserId(user.getId());
 
         return PageResponse.<UserActivityResponse>builder()
                 .page(page)

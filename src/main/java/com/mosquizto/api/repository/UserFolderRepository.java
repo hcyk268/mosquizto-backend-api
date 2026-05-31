@@ -16,17 +16,23 @@ public interface UserFolderRepository extends JpaRepository<UserFolder, UserFold
 
     @Query("select uf from UserFolder uf " +
             "where uf.user.id = :userId " +
-            "and uf.folder.id = :folderId")
-    Optional<UserFolder> findByUserIdAndFolderId(@Param("userId") Long userId, @Param("folderId") Long folderId);
+            "and uf.folder.id = :folderId " +
+            "and uf.deletedAt is null " +
+            "and uf.user.deletedAt is null " +
+            "and uf.folder.deletedAt is null")
+    Optional<UserFolder> findActiveByUserIdAndFolderId(@Param("userId") Long userId, @Param("folderId") Long folderId);
 
     @Query("select uf from UserFolder uf join fetch uf.user " +
             "where uf.folder.id = :folderId " +
-            "and uf.accessStatus = :accessStatus")
-    List<UserFolder> findAllByFolderIdAndAccessStatus(
+            "and uf.accessStatus = :accessStatus " +
+            "and uf.deletedAt is null " +
+            "and uf.user.deletedAt is null " +
+            "and uf.folder.deletedAt is null")
+    List<UserFolder> findActiveMembersByFolderIdAndStatus(
             @Param("folderId") Long folderId,
             @Param("accessStatus") AccessStatus accessStatus);
 
     default List<UserFolder> findAllActiveMembersByFolderId(Long folderId) {
-        return findAllByFolderIdAndAccessStatus(folderId, AccessStatus.ENABLE);
+        return findActiveMembersByFolderIdAndStatus(folderId, AccessStatus.ENABLE);
     }
 }

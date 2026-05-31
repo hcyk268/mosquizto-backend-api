@@ -67,14 +67,14 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public void deleteFolder(Long folderId) {
         User user = this.currentUserProvider.getCurrentUser();
-        Folder folder = this.folderRepository.findById(folderId)
+        Folder folder = this.folderRepository.findActiveById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         if (!folder.canDelete(user)) {
             throw new AccessDeniedException("You do not have permission to delete this folder");
         }
 
-        this.folderCollectionRepository.deleteAllByFolderId(folderId);
+        this.folderCollectionRepository.deleteAllActiveByFolderId(folderId);
         this.folderRepository.delete(folder);
     }
 
@@ -83,7 +83,7 @@ public class FolderServiceImpl implements FolderService {
     public List<FolderSummaryResponse> getAllOwnFolder() {
         User user = this.currentUserProvider.getCurrentUser();
 
-        return this.folderRepository.findAllAccessibleByUserIdOrderByCreatedAtDesc(user.getId(), AccessStatus.ENABLE)
+        return this.folderRepository.findAccessibleActiveByUserId(user.getId(), AccessStatus.ENABLE)
                 .stream()
                 .map(this.folderMapper::toFolderSummaryResponse)
                 .toList();
@@ -94,7 +94,7 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse getDetailFolder(Long folderId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
+        Folder folder = this.folderRepository.findActiveByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -110,7 +110,7 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse updateFolder(Long folderId, UpdateFolderRequest updateFolderRequest) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
+        Folder folder = this.folderRepository.findActiveByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -151,7 +151,7 @@ public class FolderServiceImpl implements FolderService {
     public FolderResponse addCollection(Long folderId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findByIdWithCollections(folderId)
+        Folder folder = this.folderRepository.findActiveByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -171,13 +171,13 @@ public class FolderServiceImpl implements FolderService {
             throw new ConflictException(ErrorCode.COLLECTION_ALREADY_IN_FOLDER, "Collection is already exists in folder");
         }
 
-        int maxOrderIndex = this.folderCollectionRepository.findMaxOrderIndexCollection(folderId);
+        int maxOrderIndex = this.folderCollectionRepository.findMaxActiveOrderIndex(folderId);
 
         FolderCollection folderCollection = folder.addCollection(collection, maxOrderIndex + 1);
 
         this.folderCollectionRepository.save(folderCollection);
 
-        Folder updatedFolder = this.folderRepository.findByIdWithCollections(folderId)
+        Folder updatedFolder = this.folderRepository.findActiveByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         return folderMapper.toFolderResponse(updatedFolder);
@@ -188,7 +188,7 @@ public class FolderServiceImpl implements FolderService {
     public void deleteCollection(Long folderId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findById(folderId)
+        Folder folder = this.folderRepository.findActiveById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -196,7 +196,7 @@ public class FolderServiceImpl implements FolderService {
             throw new AccessDeniedException("You do not have permission to manage this folder");
         }
 
-        FolderCollection folderCollection = this.folderCollectionRepository.findByFolderIdAndCollectionId(folderId, collectionId)
+        FolderCollection folderCollection = this.folderCollectionRepository.findActiveByFolderIdAndCollectionId(folderId, collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in folder"));
 
         folder.removeCollection(folderCollection.getCollection());
@@ -208,7 +208,7 @@ public class FolderServiceImpl implements FolderService {
     @Transactional
     public FolderMemberResponse shareFolder(Long folderId, ShareFolderRequest request) {
         User owner = this.currentUserProvider.getCurrentUser();
-        Folder folder = this.folderRepository.findById(folderId)
+        Folder folder = this.folderRepository.findActiveById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
 
         if (!folder.isOwnedBy(owner)) {
@@ -225,7 +225,7 @@ public class FolderServiceImpl implements FolderService {
         }
 
         UserFolder membership = this.userFolderRepository
-                .findByUserIdAndFolderId(sharedUser.getId(), folderId)
+                .findActiveByUserIdAndFolderId(sharedUser.getId(), folderId)
                 .orElseGet(() -> UserFolder.createShared(sharedUser, folder, request.getRole()));
 
         membership.changeRole(request.getRole());
@@ -239,7 +239,7 @@ public class FolderServiceImpl implements FolderService {
     @Transactional(readOnly = true)
     public List<FolderMemberResponse> getFolderMembers(Long folderId) {
         User user = this.currentUserProvider.getCurrentUser();
-        Folder folder = this.folderRepository.findById(folderId)
+        Folder folder = this.folderRepository.findActiveById(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -263,7 +263,7 @@ public class FolderServiceImpl implements FolderService {
     }
 
     private UserFolder getMembership(Long userId, Long folderId) {
-        return this.userFolderRepository.findByUserIdAndFolderId(userId, folderId)
+        return this.userFolderRepository.findActiveByUserIdAndFolderId(userId, folderId)
                 .orElse(null);
     }
 }

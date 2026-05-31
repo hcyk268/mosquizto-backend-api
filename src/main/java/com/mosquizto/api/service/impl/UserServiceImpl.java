@@ -36,7 +36,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getByUsername(String username) {
-        return this.userRepository.findByUsername(username)
+        return this.userRepository.findActiveByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
     }
 
@@ -45,10 +45,10 @@ public class UserServiceImpl implements UserService {
         Role role = this.roleRepository.findByName(request.getRole())
                 .orElseThrow(() -> new ResourceNotFoundException("Role must be not " + request.getRole()));
 
-        if (this.userRepository.existsByUsername(request.getUsername())) {
+        if (this.checkUsernameExists(request.getUsername())) {
             throw new ConflictException(ErrorCode.DUPLICATE_USERNAME, "Username already exists");
         }
-        if (this.userRepository.existsByEmail(request.getEmail())) {
+        if (this.checkEmailExists(request.getEmail())) {
             throw new ConflictException(ErrorCode.DUPLICATE_EMAIL, "Email already exists");
         }
 
@@ -77,7 +77,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void confirmUser(long userId, String verifyCode) {
-        User user = this.userRepository.findByIdAndVerifyCode(userId, verifyCode)
+        User user = this.userRepository.findActiveByIdAndVerifyCode(userId, verifyCode)
                 .orElseThrow(() -> new BusinessRuleException(ErrorCode.INVALID_VERIFICATION_CODE,
                         "Invalid verification code or user not found"));
 
@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void saveVerifyCode(long userId, String verifyCode) {
-        User user = this.userRepository.findById(userId)
+        User user = this.userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         user.assignVerifyCode(verifyCode);
@@ -96,7 +96,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getByEmail(String email) {
-        return this.userRepository.findByEmail(email)
+        return this.userRepository.findActiveByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public PageResponse<UserResponse> getListUser(int page, int size) {
-        Page<User> userPage = this.userRepository.findAll(PageRequest.of(page - 1, size));
+        Page<User> userPage = this.userRepository.findAllActive(PageRequest.of(page - 1, size));
 
         List<UserResponse> items = userPage.getContent().stream()
                 .map(userMapper::toResponse)
@@ -157,7 +157,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getById(Long userId) {
-        return this.userRepository.findById(userId)
+        return this.userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 }

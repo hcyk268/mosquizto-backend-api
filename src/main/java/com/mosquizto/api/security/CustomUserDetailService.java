@@ -18,7 +18,7 @@ public class CustomUserDetailService implements UserDetailsService {
     @Override
     @Cacheable(value = "userdetails", key = "#username")
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
+        User user = userRepository.findActiveByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
         return org.springframework.security.core.userdetails.User
