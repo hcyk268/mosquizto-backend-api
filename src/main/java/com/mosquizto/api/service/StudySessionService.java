@@ -27,6 +27,6 @@ public interface StudySessionService {
 
     List<StudySessionResponse> getJumpBackInStudySession();
 
-    void deleteStudySession(@Valid @Positive Long studySessionId);
+    void deleteStudySession(Long studySessionId);
 }
 

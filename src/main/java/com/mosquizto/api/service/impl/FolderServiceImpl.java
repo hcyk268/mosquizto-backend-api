@@ -74,8 +74,7 @@ public class FolderServiceImpl implements FolderService {
             throw new AccessDeniedException("You do not have permission to delete this folder");
         }
 
-        this.folderCollectionRepository.deleteAllActiveByFolderId(folderId);
-        this.folderRepository.delete(folder);
+        folder.delete(user);
     }
 
     @Override
@@ -172,8 +171,13 @@ public class FolderServiceImpl implements FolderService {
         }
 
         int maxOrderIndex = this.folderCollectionRepository.findMaxActiveOrderIndex(folderId);
-
-        FolderCollection folderCollection = folder.addCollection(collection, maxOrderIndex + 1);
+        FolderCollection folderCollection = this.folderCollectionRepository.findByFolderIdAndCollectionId(folderId, collectionId)
+                .map(existing -> {
+                    existing.restore();
+                    existing.updateOrder(maxOrderIndex + 1);
+                    return existing;
+                })
+                .orElseGet(() -> folder.addCollection(collection, maxOrderIndex + 1));
 
         this.folderCollectionRepository.save(folderCollection);
 
@@ -188,7 +192,7 @@ public class FolderServiceImpl implements FolderService {
     public void deleteCollection(Long folderId, Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Folder folder = this.folderRepository.findActiveById(folderId)
+        Folder folder = this.folderRepository.findActiveByIdWithCollections(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Folder not exists"));
         UserFolder membership = getMembership(user.getId(), folderId);
 
@@ -196,12 +200,13 @@ public class FolderServiceImpl implements FolderService {
             throw new AccessDeniedException("You do not have permission to manage this folder");
         }
 
-        FolderCollection folderCollection = this.folderCollectionRepository.findActiveByFolderIdAndCollectionId(folderId, collectionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in folder"));
+        Collection collection = this.collectionService.getById(collectionId);
+        FolderCollection folderCollection = folder.removeCollection(collection);
+        if (folderCollection == null) {
+            throw new ResourceNotFoundException("Collection does not exist in folder");
+        }
 
-        folder.removeCollection(folderCollection.getCollection());
-
-        this.folderCollectionRepository.delete(folderCollection);
+        folderCollection.delete(user);
     }
 
     @Override

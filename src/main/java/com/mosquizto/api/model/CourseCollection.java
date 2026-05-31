@@ -6,6 +6,8 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+import java.util.Date;
+
 @Getter
 @Setter
 @Builder
@@ -66,5 +68,15 @@ public class CourseCollection extends AbstractEntity<Long> {
 
     public void updateOrder(Integer orderIndex) {
         this.orderIndex = orderIndex;
+    }
+
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
+    }
+
+    public void restore() {
+        this.setDeletedAt(null);
+        this.setDeletedBy(null);
     }
 }

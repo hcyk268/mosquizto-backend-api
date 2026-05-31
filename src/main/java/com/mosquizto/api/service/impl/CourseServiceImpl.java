@@ -131,7 +131,7 @@ public class CourseServiceImpl implements CourseService {
 
         this.validateManager(course, currentUserCourse, "Only teacher can delete this course");
 
-        this.courseRepository.delete(course);
+        course.delete(user);
     }
 
     @Override
@@ -199,7 +199,14 @@ public class CourseServiceImpl implements CourseService {
         }
 
         int maxOrderIndex = this.courseCollectionRepository.findMaxActiveOrderIndex(courseId);
-        CourseCollection courseCollection = course.addCollection(collection, maxOrderIndex + 1);
+        CourseCollection courseCollection = this.courseCollectionRepository.findByCourseIdAndCollectionId(courseId, collectionId)
+                .map(existing -> {
+                    existing.restore();
+                    existing.enable();
+                    existing.updateOrder(maxOrderIndex + 1);
+                    return existing;
+                })
+                .orElseGet(() -> course.addCollection(collection, maxOrderIndex + 1));
 
         this.courseCollectionRepository.save(courseCollection);
 
@@ -218,7 +225,8 @@ public class CourseServiceImpl implements CourseService {
         CourseCollection courseCollection = this.courseCollectionRepository.findActiveByCourseIdAndCollectionId(courseId, collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in course"));
 
-        this.courseCollectionRepository.delete(courseCollection);
+        courseCollection.delete(user);
+        this.courseCollectionRepository.save(courseCollection);
     }
 
     @Override

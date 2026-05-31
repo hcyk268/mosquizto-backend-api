@@ -3,6 +3,8 @@ package com.mosquizto.api.model;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.Date;
+
 @Getter
 @Setter
 @Builder
@@ -33,5 +35,15 @@ public class FolderCollection extends AbstractEntity<Long> {
 
     public void updateOrder(Integer orderIndex) {
         this.orderIndex = orderIndex;
+    }
+
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
+    }
+
+    public void restore() {
+        this.setDeletedAt(null);
+        this.setDeletedBy(null);
     }
 }

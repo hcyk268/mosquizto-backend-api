@@ -20,6 +20,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -96,6 +98,7 @@ public class CollectionServiceImpl implements CollectionService {
     }
 
     @Override
+    @Transactional
     public void deleteCollection(Integer id) {
         User user = currentUserProvider.getCurrentUser();
         Collection collection = this.collectionRepository.findActiveById(id)
@@ -103,8 +106,8 @@ public class CollectionServiceImpl implements CollectionService {
 
         membershipResolver.requireCanDelete(collection, user);
 
-        collectionSearchService.delete(id);
-        this.collectionRepository.deleteById(id);
+        collection.delete(user);
+        this.runAfterCommit(() -> this.collectionSearchService.delete(id));
     }
 
     @Override
@@ -152,5 +155,20 @@ public class CollectionServiceImpl implements CollectionService {
 
         UserCollection membership = membershipResolver.getMembership(user.getId(), collectionId);
         return collection.canView(user, membership);
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

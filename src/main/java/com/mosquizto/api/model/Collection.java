@@ -6,6 +6,7 @@ import lombok.*;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @AllArgsConstructor
@@ -104,6 +105,11 @@ public class Collection extends AbstractEntity<Integer> {
         if (visibility != null) {
             this.visibility = visibility;
         }
+    }
+
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
     }
 
     public int getItemCount() {

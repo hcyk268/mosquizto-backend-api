@@ -46,4 +46,11 @@ public interface FolderCollectionRepository extends JpaRepository<FolderCollecti
             @Param("folderId") Long folderId,
             @Param("collectionId") Integer collectionId);
 
+    @Query("SELECT fc FROM FolderCollection fc " +
+            "WHERE fc.folder.id = :folderId " +
+            "AND fc.collection.id = :collectionId")
+    Optional<FolderCollection> findByFolderIdAndCollectionId(
+            @Param("folderId") Long folderId,
+            @Param("collectionId") Integer collectionId);
+
 }
