@@ -20,6 +20,8 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -69,12 +71,15 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         CollectionItem targetItem = getItemById(id);
         Collection collection = targetItem.getCollection();
         User user = this.currentUserProvider.getCurrentUser();
-        membershipResolver.requireCanEdit(collection, user);
 
-        this.collectionItemRepository.delete(targetItem);
+        if (!collection.isOwnedBy(user)) {
+            throw new AccessDeniedException("You do not have permission to delete this item");
+        }
+
+        targetItem.delete(user);
         collection.decreaseItemCount();
-        collectionRepository.save(collection);
-        collectionSearchService.upsert(collection);
+
+        this.runAfterCommit(() -> collectionSearchService.upsert(collection));
         return this.collectionItemMapper.toResponse(targetItem);
     }
 
@@ -106,5 +111,20 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     private CollectionItem getItemById(Integer id) {
         return collectionItemRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

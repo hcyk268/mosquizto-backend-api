@@ -18,6 +18,7 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.AccessStatus;
+import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -41,7 +42,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Override
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
-        String usernameOwner = this.currentUserProvider.getCurrentUsername();
+        User owner = this.currentUserProvider.getCurrentUser();
+        String usernameOwner = owner.getUsername();
         Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
@@ -59,9 +61,10 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .collectionId(collection.getId())
                 .build();
 
-        UserCollection userCollection = this.userCollectionRepository.findActiveById(id)
+        UserCollection userCollection = this.userCollectionRepository.findById(id)
                 .orElseGet(() -> UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole()));
 
+        userCollection.restore();
         userCollection.changeRole(shareCollectionRequest.getRole());
         userCollection.markPending();
         this.userCollectionRepository.save(userCollection);
@@ -115,8 +118,17 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(user.getId())
                 .build();
 
-        UserCollection existingMembership = this.userCollectionRepository.findActiveById(id).orElse(null);
+        UserCollection existingMembership = this.userCollectionRepository.findById(id).orElse(null);
         if (existingMembership != null) {
+            if (existingMembership.getDeletedAt() != null) {
+                existingMembership.restore();
+                existingMembership.changeRole(CollectionRole.VIEWER);
+                existingMembership.markPending();
+                existingMembership.touchLastOpenedAt(new Date());
+                this.userCollectionRepository.save(existingMembership);
+                return;
+            }
+
             if (existingMembership.isActive()) {
                 throw new ConflictException(ErrorCode.ALREADY_JOINED, "You have already joined this collection");
             }
@@ -137,7 +149,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Override
     @Transactional
     public void deleteCollectionMember(Integer collectionId, Long userId) {
-        String username = this.currentUserProvider.getCurrentUsername();
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        String username = currentUser.getUsername();
         User user = this.userService.getById(userId);
 
         Collection collection = this.collectionRepository.findActiveById(collectionId)
@@ -152,8 +165,10 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(userId)
                 .build();
 
-        if (this.userCollectionRepository.existsActiveById(idDelete)) {
-            this.userCollectionRepository.deleteById(idDelete);
+        UserCollection membership = this.userCollectionRepository.findActiveById(idDelete).orElse(null);
+        if (membership != null) {
+            membership.delete(currentUser);
+            this.userCollectionRepository.save(membership);
         }
     }
 

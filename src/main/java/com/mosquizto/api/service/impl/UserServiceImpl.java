@@ -5,22 +5,25 @@ import com.mosquizto.api.dto.request.ChangePasswordRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
-import com.mosquizto.api.exception.BusinessRuleException;
-import com.mosquizto.api.exception.ConflictException;
-import com.mosquizto.api.exception.ErrorCode;
-import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.exception.*;
 import com.mosquizto.api.mapper.UserMapper;
 import com.mosquizto.api.model.Role;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.RedisTokenService;
 import com.mosquizto.api.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 
@@ -28,11 +31,15 @@ import java.util.List;
 @Service
 public class UserServiceImpl implements UserService {
 
+    private static final String USER_DETAILS_CACHE = "userdetails";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final CurrentUserProvider currentUserProvider;
     private final UserMapper userMapper;
+    private final RedisTokenService redisTokenService;
+    private final CacheManager cacheManager;
 
     @Override
     public User getByUsername(String username) {
@@ -82,7 +89,7 @@ public class UserServiceImpl implements UserService {
                         "Invalid verification code or user not found"));
 
         user.activate(verifyCode);
-        this.userRepository.save(user);
+        this.save(user);
     }
 
     @Override
@@ -91,7 +98,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 
         user.assignVerifyCode(verifyCode);
-        this.userRepository.save(user);
+        this.save(user);
     }
 
     @Override
@@ -103,6 +110,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public void save(User user) {
         this.userRepository.save(user);
+        this.evictUserDetailsAfterCommit(user.getUsername());
     }
 
     @Override
@@ -159,5 +167,55 @@ public class UserServiceImpl implements UserService {
     public User getById(Long userId) {
         return this.userRepository.findActiveById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long userId) {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+
+        User user = this.userRepository.findActiveById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found or already deleted"));
+
+        if (!user.canDelete(currentUser)) {
+            throw new AccessDeniedException("You do not have permission to delete this user");
+        }
+
+        user.delete(currentUser);
+        this.userRepository.save(user);
+        this.invalidateDeletedUserAfterCommit(user.getUsername());
+    }
+
+    private void evictUserDetailsAfterCommit(String username) {
+        this.runAfterCommit(() -> this.evictUserDetails(username));
+    }
+
+    private void invalidateDeletedUserAfterCommit(String username) {
+        this.runAfterCommit(() -> {
+            this.evictUserDetails(username);
+            this.redisTokenService.deleteById(username);
+        });
+    }
+
+    private void evictUserDetails(String username) {
+        Cache userDetailsCache = this.cacheManager.getCache(USER_DETAILS_CACHE);
+        if (userDetailsCache != null) {
+            userDetailsCache.evict(username);
+        }
+    }
+
+    private void runAfterCommit(Runnable action) {
+        if (!TransactionSynchronizationManager.isActualTransactionActive()
+                || !TransactionSynchronizationManager.isSynchronizationActive()) {
+            action.run();
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                action.run();
+            }
+        });
     }
 }

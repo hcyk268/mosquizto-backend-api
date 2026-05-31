@@ -10,6 +10,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -71,6 +72,11 @@ public class Course extends AbstractEntity<Long> {
 
     public boolean canManage(UserCourse membership) {
         return membership != null && membership.isEnabled() && membership.isTeacher();
+    }
+
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
     }
 
     public void updateInfo(String title, String description, Boolean visibility, String thumbnailUrl) {

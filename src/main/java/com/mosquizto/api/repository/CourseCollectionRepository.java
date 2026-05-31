@@ -33,6 +33,13 @@ public interface CourseCollectionRepository extends JpaRepository<CourseCollecti
             @Param("courseId") Long courseId,
             @Param("collectionId") Integer collectionId);
 
+    @Query("SELECT cc FROM CourseCollection cc " +
+            "WHERE cc.course.id = :courseId " +
+            "AND cc.collection.id = :collectionId")
+    Optional<CourseCollection> findByCourseIdAndCollectionId(
+            @Param("courseId") Long courseId,
+            @Param("collectionId") Integer collectionId);
+
     @Query("SELECT COALESCE(MAX(cc.orderIndex), 0) " +
             "FROM CourseCollection cc " +
             "WHERE cc.course.id = :courseId " +

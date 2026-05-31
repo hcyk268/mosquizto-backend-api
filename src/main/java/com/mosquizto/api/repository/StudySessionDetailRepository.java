@@ -16,7 +16,6 @@ public interface StudySessionDetailRepository extends JpaRepository<StudySession
             "where detail.studySession.id = :studySessionId " +
             "and detail.deletedAt is null " +
             "and detail.studySession.deletedAt is null " +
-            "and item.deletedAt is null " +
             "order by detail.id asc")
     List<StudySessionDetail> findAllActiveByStudySessionId(@Param("studySessionId") Long studySessionId);
 }

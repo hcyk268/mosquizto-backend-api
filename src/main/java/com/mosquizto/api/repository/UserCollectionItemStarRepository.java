@@ -18,7 +18,9 @@ public interface UserCollectionItemStarRepository extends JpaRepository<UserColl
     @Query("select count(star) from UserCollectionItemStar star " +
             "where star.user.id = :userId " +
             "and star.deletedAt is null " +
-            "and star.user.deletedAt is null")
+            "and star.user.deletedAt is null " +
+            "and star.collectionItem.deletedAt is null " +
+            "and star.collectionItem.collection.deletedAt is null")
     long countActiveByUserId(@Param("userId") Long userId);
 
     @Query("select star from UserCollectionItemStar star " +

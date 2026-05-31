@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -77,6 +78,11 @@ public class Folder extends AbstractEntity<Long> {
         return isOwnedBy(user);
     }
 
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
+    }
+
     public void updateInfo(String name, String description) {
         if (name != null) {
             this.name = name;
@@ -103,13 +109,18 @@ public class Folder extends AbstractEntity<Long> {
         return folderCollection;
     }
 
-    public void removeCollection(Collection collection) {
+    public FolderCollection removeCollection(Collection collection) {
         if (this.folderCollections == null) {
-            return;
+            return null;
         }
 
-        this.folderCollections.removeIf(folderCollection ->
-                sameCollection(folderCollection.getCollection(), collection));
+        FolderCollection folderCollection = findFolderCollection(collection);
+        if (folderCollection == null) {
+            return null;
+        }
+
+        this.folderCollections.remove(folderCollection);
+        return folderCollection;
     }
 
     public boolean containsCollection(Collection collection) {

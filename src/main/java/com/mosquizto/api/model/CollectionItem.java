@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Getter
@@ -79,6 +80,10 @@ public class CollectionItem extends AbstractEntity<Integer> {
         this.collection = collection;
     }
 
+    public void delete(User deleteBy) {
+        this.setDeletedAt(new Date());
+        this.setDeletedBy(deleteBy);
+    }
 }
 
 
