@@ -9,6 +9,7 @@ import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
@@ -64,6 +65,13 @@ public class UserFolder {
     @Column(name = "updated_at")
     @UpdateTimestamp
     private Date updatedAt;
+
+    @Column(name = "deleted_at")
+    private Date deletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
 
     public static UserFolder createOwner(User user, Folder folder) {
         validateUserAndFolder(user, folder);

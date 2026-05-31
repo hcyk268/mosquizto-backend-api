@@ -107,7 +107,8 @@ public class CollectionSearchServiceImpl implements CollectionSearchService {
         org.springframework.data.domain.Page<Collection> collectionPage;
 
         do {
-            collectionPage = collectionRepository.findAll(org.springframework.data.domain.PageRequest.of(page, pageSize));
+            collectionPage = collectionRepository.findAllActive(
+                    org.springframework.data.domain.PageRequest.of(page, pageSize));
 
             if (collectionPage.hasContent()) {
                 List<CollectionDocument> docs = collectionPage.getContent().stream()

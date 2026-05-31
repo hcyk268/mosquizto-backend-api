@@ -37,7 +37,7 @@ public class SecurityContextCurrentUserProvider implements CurrentUserProvider {
     @Override
     public User getCurrentUser() {
         if (cachedUser == null) {
-            cachedUser = userRepository.findByUsername(getCurrentUsername())
+            cachedUser = userRepository.findActiveByUsername(getCurrentUsername())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found: " + getCurrentUsername()));
         }
 

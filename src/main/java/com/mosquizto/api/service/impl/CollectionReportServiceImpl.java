@@ -33,7 +33,7 @@ public class CollectionReportServiceImpl implements CollectionReportService {
     @Transactional
     public CollectionReportResponse reportCollection(Integer collectionId, CollectionReportRequest request) {
         User reporter = this.currentUserProvider.getCurrentUser();
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         membershipResolver.requireCanView(collection, reporter);
@@ -46,7 +46,7 @@ public class CollectionReportServiceImpl implements CollectionReportService {
         String description = cleanOptional(request.getDescription());
 
         CollectionReport report = this.collectionReportRepository
-                .findByCollectionIdAndReporterId(collectionId, reporter.getId())
+                .findActiveByCollectionIdAndReporterId(collectionId, reporter.getId())
                 .orElseGet(() -> CollectionReport.create(collection, reporter, reason, description));
 
         report.updateContent(reason, description);

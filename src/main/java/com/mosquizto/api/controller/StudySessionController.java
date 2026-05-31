@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
@@ -92,5 +93,12 @@ public class StudySessionController {
     {
         return  new ResponseData<>(HttpStatus.OK.value(),"get jump back in study session",
                 this.studySessionService.getJumpBackInStudySession());
+    }
+
+    @DeleteMapping("/{studySessionId}")
+    public ResponseData<Void> deleteStudySession(@Valid @Positive @PathVariable Long studySessionId) {
+
+        this.studySessionService.deleteStudySession(studySessionId);
+        return new ResponseData<>(HttpStatus.OK.value(), "Delete this session successfully");
     }
 }

@@ -153,7 +153,7 @@ public class CourseServiceImpl implements CourseService {
     public PageResponse<CourseResponse> getMyCourses(int page, int size) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Page<UserCourse> userCoursePage = this.userCourseRepository.findAllByUserIdAndAccessStatusWithCourse(
+        Page<UserCourse> userCoursePage = this.userCourseRepository.findActiveCoursesByUserIdAndStatus(
                 user.getId(),
                 AccessStatus.ENABLE,
                 PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "course.createdAt")));
@@ -198,7 +198,7 @@ public class CourseServiceImpl implements CourseService {
             throw new AccessDeniedException("You might not access this collection");
         }
 
-        int maxOrderIndex = this.courseCollectionRepository.findMaxOrderIndexCollection(courseId);
+        int maxOrderIndex = this.courseCollectionRepository.findMaxActiveOrderIndex(courseId);
         CourseCollection courseCollection = course.addCollection(collection, maxOrderIndex + 1);
 
         this.courseCollectionRepository.save(courseCollection);
@@ -215,7 +215,7 @@ public class CourseServiceImpl implements CourseService {
 
         this.validateManager(course, currentUserCourse, "Only teacher can remove collection from this course");
 
-        CourseCollection courseCollection = this.courseCollectionRepository.findByCourseIdAndCollectionId(courseId, collectionId)
+        CourseCollection courseCollection = this.courseCollectionRepository.findActiveByCourseIdAndCollectionId(courseId, collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection does not exist in course"));
 
         this.courseCollectionRepository.delete(courseCollection);
@@ -256,7 +256,7 @@ public class CourseServiceImpl implements CourseService {
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
-        Page<UserCourse> pendingJoins = this.userCourseRepository.findAllWithStatus(courseId, AccessStatus.PENDING, pageable);
+        Page<UserCourse> pendingJoins = this.userCourseRepository.findActiveMembersByCourseIdAndStatus(courseId, AccessStatus.PENDING, pageable);
 
         List<JoinResponse> joinResponses = pendingJoins.getContent().stream()
                 .map(this.courseMapper::toJoinResponse)
@@ -274,7 +274,7 @@ public class CourseServiceImpl implements CourseService {
 
         this.validateManager(course, currentUserCourse, "You can not approve join request");
 
-        UserCourse joinRequest = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
+        UserCourse joinRequest = this.userCourseRepository.findActiveByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Join request not found"));
 
         if (!joinRequest.isPending()) {
@@ -294,7 +294,7 @@ public class CourseServiceImpl implements CourseService {
 
         this.validateManager(course, currentUserCourse, "You can not remove student from course");
 
-        UserCourse targetUserCourse = this.userCourseRepository.findByUserIdAndCourseId(userId, courseId)
+        UserCourse targetUserCourse = this.userCourseRepository.findActiveByUserIdAndCourseId(userId, courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found in course"));
 
         if (targetUserCourse.isTeacher()) {
@@ -320,7 +320,7 @@ public class CourseServiceImpl implements CourseService {
 
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.ASC, "role")
                 .and(Sort.by(Sort.Direction.ASC, "user.username")));
-        Page<UserCourse> memberPage = this.userCourseRepository.findAllWithStatus(courseId, AccessStatus.ENABLE, pageable);
+        Page<UserCourse> memberPage = this.userCourseRepository.findActiveMembersByCourseIdAndStatus(courseId, AccessStatus.ENABLE, pageable);
 
         List<CourseMemberResponse> members = memberPage.getContent().stream()
                 .map(this.courseMapper::toCourseMemberResponse)
@@ -382,12 +382,12 @@ public class CourseServiceImpl implements CourseService {
     }
 
     private Course getCourseById(Long courseId) {
-        return this.courseRepository.findById(courseId)
+        return this.courseRepository.findActiveById(courseId)
                 .orElseThrow(() -> new ResourceNotFoundException("Course not found"));
     }
 
     private Optional<UserCourse> getCurrentUserCourse(Long userId, Long courseId) {
-        return this.userCourseRepository.findByUserIdAndCourseId(userId, courseId);
+        return this.userCourseRepository.findActiveByUserIdAndCourseId(userId, courseId);
     }
 
     private void validateManager(Course course, UserCourse userCourse, String message) {
@@ -397,7 +397,7 @@ public class CourseServiceImpl implements CourseService {
     }
 
     private List<CollectionSummaryResponse> getOrderedEnabledCollections(Long courseId) {
-        return this.courseCollectionRepository.findAllByCourseIdAndAccessStatusOrderByOrderIndex(courseId, AccessStatus.ENABLE)
+        return this.courseCollectionRepository.findActiveByCourseIdAndStatus(courseId, AccessStatus.ENABLE)
                 .stream()
                 .map(this.courseMapper::toCollectionSummaryResponse)
                 .toList();

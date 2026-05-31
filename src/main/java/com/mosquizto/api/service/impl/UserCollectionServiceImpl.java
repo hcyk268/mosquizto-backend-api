@@ -42,7 +42,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
         String usernameOwner = this.currentUserProvider.getCurrentUsername();
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isOwnedBy(usernameOwner)) {
@@ -59,7 +59,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .collectionId(collection.getId())
                 .build();
 
-        UserCollection userCollection = this.userCollectionRepository.findById(id)
+        UserCollection userCollection = this.userCollectionRepository.findActiveById(id)
                 .orElseGet(() -> UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole()));
 
         userCollection.changeRole(shareCollectionRequest.getRole());
@@ -71,12 +71,12 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     public List<MemberResponse> getAllMembersCollection(Integer collectionId) {
         User currentUser = this.currentUserProvider.getCurrentUser();
 
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isOwnedBy(currentUser)) {
             UserCollection membership = this.userCollectionRepository
-                    .findByUserIdAndCollectionId(currentUser.getId(), collectionId)
+                    .findActiveByUserIdAndCollectionId(currentUser.getId(), collectionId)
                     .orElse(null);
 
             if (membership == null || !membership.canView()) {
@@ -99,7 +99,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     public void joinCollection(Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
 
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isPublic()) {
@@ -115,7 +115,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(user.getId())
                 .build();
 
-        UserCollection existingMembership = this.userCollectionRepository.findById(id).orElse(null);
+        UserCollection existingMembership = this.userCollectionRepository.findActiveById(id).orElse(null);
         if (existingMembership != null) {
             if (existingMembership.isActive()) {
                 throw new ConflictException(ErrorCode.ALREADY_JOINED, "You have already joined this collection");
@@ -140,7 +140,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         String username = this.currentUserProvider.getCurrentUsername();
         User user = this.userService.getById(userId);
 
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         if (!collection.isOwnedBy(username) || collection.isOwnedBy(user)) {
@@ -152,7 +152,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .userId(userId)
                 .build();
 
-        if (this.userCollectionRepository.existsById(idDelete)) {
+        if (this.userCollectionRepository.existsActiveById(idDelete)) {
             this.userCollectionRepository.deleteById(idDelete);
         }
     }
@@ -162,7 +162,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     public void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status) {
         String ownerUsername = currentUserProvider.getCurrentUsername();
         UserCollectionId id = new UserCollectionId(userId, collectionId);
-        UserCollection request = userCollectionRepository.findById(id)
+        UserCollection request = userCollectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
         if (!request.getCollection().isOwnedBy(ownerUsername)) {
@@ -182,7 +182,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     @Async
     public void updateLastOpenedAt(Long userId, Integer collectionId) {
-        userCollectionRepository.findByUserIdAndCollectionId(userId, collectionId)
+        userCollectionRepository.findActiveByUserIdAndCollectionId(userId, collectionId)
                 .ifPresent(userCollection -> {
                     userCollection.touchLastOpenedAt(new Date());
                     userCollectionRepository.save(userCollection);

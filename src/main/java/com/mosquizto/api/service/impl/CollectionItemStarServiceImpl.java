@@ -36,7 +36,7 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
         CollectionItem item = getAccessibleItem(user, itemId);
 
         UserCollectionItemStar star = this.starRepository
-                .findByUserIdAndCollectionItemId(user.getId(), itemId)
+                .findActiveByUserIdAndCollectionItemId(user.getId(), itemId)
                 .orElseGet(() -> UserCollectionItemStar.create(user, item));
 
         return collectionItemMapper.toResponse(this.starRepository.save(star));
@@ -48,7 +48,7 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
         User user = this.currentUserProvider.getCurrentUser();
         getAccessibleItem(user, itemId);
 
-        if (!this.starRepository.existsByUserIdAndCollectionItemId(user.getId(), itemId)) {
+        if (!this.starRepository.existsActiveByUserIdAndCollectionItemId(user.getId(), itemId)) {
             return;
         }
 
@@ -59,7 +59,7 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
     @Transactional(readOnly = true)
     public List<StarredCollectionItemResponse> getMyStarredItems() {
         User user = this.currentUserProvider.getCurrentUser();
-        return this.starRepository.findAllByUserIdOrderByCreatedAtDesc(user.getId())
+        return this.starRepository.findAllActiveByUserId(user.getId())
                 .stream()
                 .filter(star -> canView(user, star.getCollectionItem().getCollection()))
                 .map(collectionItemMapper::toResponse)
@@ -67,7 +67,7 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
     }
 
     private CollectionItem getAccessibleItem(User user, Integer itemId) {
-        CollectionItem item = this.collectionItemRepository.findById(itemId)
+        CollectionItem item = this.collectionItemRepository.findActiveById(itemId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection item not found"));
 
         membershipResolver.requireCanView(item.getCollection(), user);
