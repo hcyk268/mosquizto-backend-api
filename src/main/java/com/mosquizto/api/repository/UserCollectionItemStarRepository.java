@@ -15,12 +15,20 @@ import java.util.Optional;
 @Repository
 public interface UserCollectionItemStarRepository extends JpaRepository<UserCollectionItemStar, UserCollectionItemStarId> {
 
-    long countByUserId(Long userId);
+    @Query("select count(star) from UserCollectionItemStar star " +
+            "where star.user.id = :userId " +
+            "and star.deletedAt is null " +
+            "and star.user.deletedAt is null")
+    long countActiveByUserId(@Param("userId") Long userId);
 
     @Query("select star from UserCollectionItemStar star " +
             "where star.user.id = :userId " +
-            "and star.collectionItem.id = :collectionItemId")
-    Optional<UserCollectionItemStar> findByUserIdAndCollectionItemId(
+            "and star.collectionItem.id = :collectionItemId " +
+            "and star.deletedAt is null " +
+            "and star.user.deletedAt is null " +
+            "and star.collectionItem.deletedAt is null " +
+            "and star.collectionItem.collection.deletedAt is null")
+    Optional<UserCollectionItemStar> findActiveByUserIdAndCollectionItemId(
             @Param("userId") Long userId,
             @Param("collectionItemId") Integer collectionItemId);
 
@@ -34,24 +42,36 @@ public interface UserCollectionItemStarRepository extends JpaRepository<UserColl
 
     @Query("select count(star) > 0 from UserCollectionItemStar star " +
             "where star.user.id = :userId " +
-            "and star.collectionItem.id = :collectionItemId")
-    boolean existsByUserIdAndCollectionItemId(
+            "and star.collectionItem.id = :collectionItemId " +
+            "and star.deletedAt is null " +
+            "and star.user.deletedAt is null " +
+            "and star.collectionItem.deletedAt is null " +
+            "and star.collectionItem.collection.deletedAt is null")
+    boolean existsActiveByUserIdAndCollectionItemId(
             @Param("userId") Long userId,
             @Param("collectionItemId") Integer collectionItemId);
 
     @Query("select star from UserCollectionItemStar star " +
             "join fetch star.collectionItem item " +
-            "join fetch item.collection " +
+            "join fetch item.collection collection " +
             "where star.user.id = :userId " +
+            "and star.deletedAt is null " +
+            "and star.user.deletedAt is null " +
+            "and item.deletedAt is null " +
+            "and collection.deletedAt is null " +
             "order by star.createdAt desc")
-    List<UserCollectionItemStar> findAllByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId);
+    List<UserCollectionItemStar> findAllActiveByUserId(@Param("userId") Long userId);
 
     @Query("select star from UserCollectionItemStar star " +
             "join fetch star.collectionItem item " +
-            "join fetch item.collection " +
+            "join fetch item.collection collection " +
             "where star.user.id = :userId " +
+            "and star.deletedAt is null " +
+            "and star.user.deletedAt is null " +
+            "and item.deletedAt is null " +
+            "and collection.deletedAt is null " +
             "order by star.createdAt desc")
-    List<UserCollectionItemStar> findRecentByUserId(
+    List<UserCollectionItemStar> findRecentActiveByUserId(
             @Param("userId") Long userId,
             Pageable pageable);
 }

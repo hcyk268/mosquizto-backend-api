@@ -71,6 +71,10 @@ public class StudySession extends AbstractEntity<Long> {
         return isOwnedBy(username) && !isCompleted();
     }
 
+    public boolean canDeleteBy(String username) {
+        return isOwnedBy(username);
+    }
+
     public boolean canBeCompletedBy(String username) {
         return isOwnedBy(username) && !isCompleted();
     }

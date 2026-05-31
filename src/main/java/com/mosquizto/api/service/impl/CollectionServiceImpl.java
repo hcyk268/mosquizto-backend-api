@@ -72,7 +72,7 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     public CollectionResponse getDetail(Integer id) {
-        Collection collection = this.collectionRepository.findById(id)
+        Collection collection = this.collectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
         User user = this.currentUserProvider.getCurrentUser();
         membershipResolver.requireCanView(collection, user);
@@ -85,7 +85,7 @@ public class CollectionServiceImpl implements CollectionService {
     public void updateCollection(Integer id, CollectionRequest request) {
         User user = currentUserProvider.getCurrentUser();
 
-        Collection collection = this.collectionRepository.findById(id)
+        Collection collection = this.collectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         membershipResolver.requireCanEdit(collection, user);
@@ -98,7 +98,7 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     public void deleteCollection(Integer id) {
         User user = currentUserProvider.getCurrentUser();
-        Collection collection = this.collectionRepository.findById(id)
+        Collection collection = this.collectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         membershipResolver.requireCanDelete(collection, user);
@@ -109,7 +109,7 @@ public class CollectionServiceImpl implements CollectionService {
 
     @Override
     public Collection getById(Integer id) {
-        return this.collectionRepository.findById(id)
+        return this.collectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection Not Found"));
     }
 
@@ -137,7 +137,7 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     public List<CollectionResponse> getRecentOpenedCollection() {
         var userId = currentUserProvider.getCurrentUser().getId();
-        return userCollectionRepository.findTop10ByUserIdOrderByLastOpenedAtDesc(userId)
+        return userCollectionRepository.findRecentActiveByUserId(userId, PageRequest.of(0, 10))
                 .stream()
                 .filter(uc -> uc.getLastOpenedAt() != null) // Lọc an toàn
                 .map(uc -> collectionMapper.toResponse(uc.getCollection()))
@@ -147,7 +147,7 @@ public class CollectionServiceImpl implements CollectionService {
     @Transactional(readOnly = true)
     public boolean isAccessible(Integer collectionId) {
         User user = this.currentUserProvider.getCurrentUser();
-        Collection collection = this.collectionRepository.findById(collectionId)
+        Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
         UserCollection membership = membershipResolver.getMembership(user.getId(), collectionId);

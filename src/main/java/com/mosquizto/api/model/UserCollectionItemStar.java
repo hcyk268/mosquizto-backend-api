@@ -45,6 +45,13 @@ public class UserCollectionItemStar {
     @CreationTimestamp
     private Date createdAt;
 
+    @Column(name = "deleted_at")
+    private Date deletedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "deleted_by")
+    private User deletedBy;
+
     public static UserCollectionItemStar create(User user, CollectionItem item) {
         if (user == null) {
             throw new InvalidDataException("User must not be null");

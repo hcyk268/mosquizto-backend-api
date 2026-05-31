@@ -2,6 +2,7 @@ package com.mosquizto.api.repository;
 
 import com.mosquizto.api.model.StudySession;
 import com.mosquizto.api.util.AccessStatus;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -64,6 +65,17 @@ public interface StudySessionRepository extends JpaRepository<StudySession, Long
             "AND COALESCE(s.totalCorrect, 0) > 0 " +
             "AND COALESCE(s.totalWrong, 0) = 0")
     boolean existsPerfectSessionByUserId(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT CASE
+            WHEN COUNT(st) > 0 THEN TRUE
+            ELSE FALSE
+        END
+        FROM StudySession st
+        WHERE st.id = :id
+          AND st.user.id = :userId
+    """)
+    boolean existsByIdAndUserId(@Param("id") Long id, @Param("userId") Long userId);
 }
 
 

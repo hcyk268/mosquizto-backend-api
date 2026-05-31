@@ -18,7 +18,7 @@ public class CollectionMembershipResolver {
 
     public UserCollection getMembership(Long userId, Integer collectionId) {
         return userCollectionRepository
-                .findByUserIdAndCollectionId(userId, collectionId)
+                .findActiveByUserIdAndCollectionId(userId, collectionId)
                 .orElse(null);
     }
 

@@ -56,7 +56,7 @@ public class CollectionItemServiceImpl implements CollectionItemService {
         User currentUser = this.currentUserProvider.getCurrentUser();
         membershipResolver.requireCanView(collection, currentUser);
 
-        List<CollectionItem> items = this.collectionItemRepository.findByCollectionId(collectionId);
+        List<CollectionItem> items = this.collectionItemRepository.findAllActiveByCollectionId(collectionId);
         this.userCollectionService.updateLastOpenedAt(currentUser.getId(), collectionId);
         return items.stream()
                 .map(this.collectionItemMapper::toResponse)
@@ -99,12 +99,12 @@ public class CollectionItemServiceImpl implements CollectionItemService {
     }
 
     private Collection findCollectionById(Integer collectionId) {
-        return collectionRepository.findById(collectionId)
+        return collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
     }
 
     private CollectionItem getItemById(Integer id) {
-        return collectionItemRepository.findById(id)
+        return collectionItemRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Item not found with id: " + id));
     }
 }

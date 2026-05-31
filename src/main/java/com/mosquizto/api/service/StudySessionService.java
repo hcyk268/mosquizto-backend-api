@@ -6,6 +6,7 @@ import com.mosquizto.api.dto.request.StudySessionDetailRequest;
 import com.mosquizto.api.dto.response.*;
 import com.mosquizto.api.model.StudySession;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 
 import java.util.List;
 
@@ -25,5 +26,7 @@ public interface StudySessionService {
     StudySessionResultResponse completeBatch(Long sessionId,List<StudySessionDetailRequest> detailRequests, boolean isFullTest);
 
     List<StudySessionResponse> getJumpBackInStudySession();
+
+    void deleteStudySession(@Valid @Positive Long studySessionId);
 }
 
