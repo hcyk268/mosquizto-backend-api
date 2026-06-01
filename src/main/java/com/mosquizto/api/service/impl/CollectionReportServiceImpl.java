@@ -11,9 +11,11 @@ import com.mosquizto.api.model.CollectionReport;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionReportRepository;
 import com.mosquizto.api.repository.CollectionRepository;
+import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CollectionReportService;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.MailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,7 +30,8 @@ public class CollectionReportServiceImpl implements CollectionReportService {
     private final CollectionReportRepository collectionReportRepository;
     private final CollectionMapper collectionMapper;
     private final CollectionMembershipResolver membershipResolver;
-
+    private final MailService mailService ;
+    private final UserRepository userRepository ;
     @Override
     @Transactional
     public CollectionReportResponse reportCollection(Integer collectionId, CollectionReportRequest request) {
@@ -50,7 +53,11 @@ public class CollectionReportServiceImpl implements CollectionReportService {
                 .orElseGet(() -> CollectionReport.create(collection, reporter, reason, description));
 
         report.updateContent(reason, description);
-
+        String recipientName = collection.getCreatedBy().getUsername() ;
+        User targetUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
+                new ResourceNotFoundException(recipientName + "does not exits"));
+        mailService.sendCollectionReportNotification(targetUser.getEmail(),recipientName,reporter.getEmail(),
+                collection.getTitle(),request.getReason(), request.getDescription());
         return this.collectionMapper.toResponse(this.collectionReportRepository.save(report));
     }
 

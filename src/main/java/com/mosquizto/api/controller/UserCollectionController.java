@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.MemberResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.model.UserCollection;
+import com.mosquizto.api.service.MailService;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.util.AccessStatus;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,7 +29,7 @@ public class UserCollectionController {
 
     @Operation(summary = "Share collection", security = @SecurityRequirement(name = "bearerAuth"))
     @PostMapping("/share/{collectionId}")
-    public ResponseData<?> shareCollection(@PathVariable Integer collectionId,
+    public ResponseData<Void> shareCollection(@PathVariable Integer collectionId,
                                            @Valid @RequestBody ShareCollectionRequest shareCollectionRequest) {
         this.userCollectionService.shareCollection(collectionId, shareCollectionRequest);
         return new ResponseData<>(HttpStatus.CREATED.value(), "Collection shared successfully");
@@ -69,4 +70,11 @@ public class UserCollectionController {
                 );
         return new ResponseData<>(HttpStatus.OK.value(),"success",accessStatus);
     }
+    @DeleteMapping("/collection/{collectionId}/recent")
+    public ResponseData<Void> removeFromRecent(
+            @PathVariable Integer collectionId
+    ) {
+        userCollectionService.removeRecentOpenedCollection(collectionId);
+        return new ResponseData<>(HttpStatus.OK.value(),"success");
+}
 }

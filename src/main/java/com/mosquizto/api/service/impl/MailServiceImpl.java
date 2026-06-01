@@ -118,4 +118,77 @@ public class MailServiceImpl implements MailService {
             log.error("Failed to send email to {}: {}", emailTo, e.getMessage());
         }
     }
+
+    @Async
+    @Override
+    public void sendCollectionShareInvite(String emailTo, String recipientName,
+                                          String sharerUsername, String collectionTitle, String role) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
+            Context context = new Context();
+
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("recipientName", recipientName);
+            properties.put("sharerUsername", sharerUsername);
+            properties.put("collectionTitle", collectionTitle);
+            properties.put("role", formatRole(role));
+            context.setVariables(properties);
+
+            helper.setFrom(emailFrom, "Mosquizto Company");
+            helper.setTo(emailTo);
+            helper.setSubject(sharerUsername + " shared a collection with you");
+            String html = templateEngine.process("collection-share-invite.html", context);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Collection share invite sent to {} for collection '{}'", emailTo, collectionTitle);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Failed to send collection share invite to {}: {}", emailTo, e.getMessage());
+        }
+    }
+
+    @Async
+    @Override
+    public void sendCollectionReportNotification(String emailTo, String ownerName,
+                                                 String reporterUsername, String collectionTitle, String reason, String description) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, MimeMessageHelper.MULTIPART_MODE_MIXED_RELATED,
+                    StandardCharsets.UTF_8.name());
+            Context context = new Context();
+
+            Map<String, Object> properties = new HashMap<>();
+            properties.put("ownerName", ownerName);
+            properties.put("reporterUsername", reporterUsername);
+            properties.put("collectionTitle", collectionTitle);
+            properties.put("reason", reason);
+            properties.put("hasDescription", description != null && !description.isBlank());
+            properties.put("description", description);
+            context.setVariables(properties);
+
+            helper.setFrom(emailFrom, "Mosquizto Company");
+            helper.setTo(emailTo);
+            helper.setSubject("Your collection \"" + collectionTitle + "\" has been reported");
+            String html = templateEngine.process("collection-report-notification.html", context);
+            helper.setText(html, true);
+
+            mailSender.send(message);
+            log.info("Collection report notification sent to {} for collection '{}'", emailTo, collectionTitle);
+        } catch (MessagingException | UnsupportedEncodingException e) {
+            log.error("Failed to send collection report notification to {}: {}", emailTo, e.getMessage());
+        }
+    }
+
+    /**
+     * Chuyển role enum thành chuỗi thân thiện hơn cho email.
+     */
+    private String formatRole(String role) {
+        return switch (role.toUpperCase()) {
+            case "EDITOR" -> "Editor (can edit)";
+            case "VIEWER" -> "Viewer (read-only)";
+            default -> role;
+        };
+    }
 }

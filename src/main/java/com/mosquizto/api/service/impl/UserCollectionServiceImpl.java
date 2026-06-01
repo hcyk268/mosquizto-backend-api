@@ -14,7 +14,9 @@ import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.model.key.UserCollectionId;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
+import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.MailService;
 import com.mosquizto.api.service.UserCollectionService;
 import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.AccessStatus;
@@ -37,17 +39,22 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     private final UserService userService;
     private final CollectionRepository collectionRepository;
     private final UserCollectionRepository userCollectionRepository;
+    private final UserRepository userRepository ;
     private final UserCollectionMapper userCollectionMapper;
-
+    private final MailService mailService ;
     @Override
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
         User owner = this.currentUserProvider.getCurrentUser();
         String usernameOwner = owner.getUsername();
+        String recipientName = shareCollectionRequest.getUsername() ;
+        User targetUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
+                new ResourceNotFoundException(recipientName + "does not exits"));
+
         Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        if (!collection.isOwnedBy(usernameOwner)) {
+        if (!collection.isOwnedBy(usernameOwner) &&  shareCollectionRequest.getRole() == CollectionRole.EDITOR) {
             throw new AccessDeniedException("You do not have permission to share this collection");
         }
 
@@ -68,6 +75,9 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         userCollection.changeRole(shareCollectionRequest.getRole());
         userCollection.markPending();
         this.userCollectionRepository.save(userCollection);
+        // gửi mail
+        mailService.sendCollectionShareInvite(targetUser.getEmail(), targetUser.getUsername(),owner.getUsername()
+                ,collection.getTitle(),shareCollectionRequest.getRole().name());
     }
 
     @Override
@@ -202,5 +212,15 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                     userCollection.touchLastOpenedAt(new Date());
                     userCollectionRepository.save(userCollection);
                 });
+    }
+    @Override
+    @Transactional
+    public void removeRecentOpenedCollection(Integer collectionId) {
+        Long userId = this.currentUserProvider.getCurrentUser().getId();
+        UserCollection userCollection = userCollectionRepository
+                .findActiveByUserIdAndCollectionId(userId, collectionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Collection is not found or you don't have permission"));
+        userCollection.setLastOpenedAt(null);
+        userCollectionRepository.save(userCollection);
     }
 }

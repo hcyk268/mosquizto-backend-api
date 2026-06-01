@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collection Report Notification</title>
+</head>
+
+<body style="margin: 0; padding: 0; background-color: #f4f7fa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+       style="background-color: #f4f7fa; padding: 40px 0;">
+    <tr>
+        <td align="center">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0"
+                   style="background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+
+                <!-- Header -->
+                <tr>
+                    <td style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); padding: 40px 40px 30px; text-align: center;">
+                        <div style="width: 64px; height: 64px; background-color: rgba(255,255,255,0.2); border-radius: 50%; margin: 0 auto 16px; line-height: 64px; font-size: 28px;">
+                            ⚠️
+                        </div>
+                        <h1 style="color: #ffffff; font-size: 24px; font-weight: 700; margin: 0;">
+                            Your collection has been reported
+                        </h1>
+                        <p style="color: rgba(255,255,255,0.85); font-size: 15px; margin: 8px 0 0;">
+                            A user submitted a report for review
+                        </p>
+                    </td>
+                </tr>
+
+                <!-- Body -->
+                <tr>
+                    <td style="padding: 40px 40px 20px;">
+                        <p style="color: #2d3748; font-size: 16px; line-height: 1.6; margin: 0 0 8px;">
+                            Hi <strong th:text="${ownerName}">User</strong>,
+                        </p>
+                        <p style="color: #4a5568; font-size: 15px; line-height: 1.7; margin: 0 0 24px;">
+                            We've received a report from user <strong th:text="${reporterUsername}">someone</strong>
+                            regarding one of your collections. Our team will review it and take appropriate action if necessary.
+                        </p>
+
+                        <!-- Report details card -->
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                               style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; margin-bottom: 24px;">
+                            <tr>
+                                <td style="padding: 20px 24px;">
+                                    <!-- Collection name -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                                           style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #fde68a;">
+                                        <tr>
+                                            <td>
+                                                <p style="color: #92400e; font-size: 12px; font-weight: 600; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                    Reported collection
+                                                </p>
+                                                <p style="color: #78350f; font-size: 16px; font-weight: 700; margin: 0;"
+                                                   th:text="${collectionTitle}">Collection Name</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Reason -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                                           th:classappend="${hasDescription} ? 'margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid #fde68a;' : ''">
+                                        <tr>
+                                            <td>
+                                                <p style="color: #92400e; font-size: 12px; font-weight: 600; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                    Reason
+                                                </p>
+                                                <p style="color: #78350f; font-size: 15px; margin: 0;"
+                                                   th:text="${reason}">Reason</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+
+                                    <!-- Description (optional) -->
+                                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                                           th:if="${hasDescription}" style="margin-top: 16px;">
+                                        <tr>
+                                            <td>
+                                                <p style="color: #92400e; font-size: 12px; font-weight: 600; margin: 0 0 4px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                                    Additional details
+                                                </p>
+                                                <p style="color: #78350f; font-size: 14px; line-height: 1.6; margin: 0;"
+                                                   th:text="${description}">Description</p>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </td>
+                            </tr>
+                        </table>
+
+                        <!-- What happens next -->
+                        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 16px;">
+                                    <p style="color: #166534; font-size: 13px; line-height: 1.5; margin: 0;">
+                                        ✅ If your collection does not violate our community guidelines, no action will be taken.
+                                        If you believe this report is unfair, please contact our support team.
+                                    </p>
+                                </td>
+                            </tr>
+                        </table>
+                    </td>
+                </tr>
+
+                <!-- Footer -->
+                <tr>
+                    <td style="background-color: #f8fafc; padding: 24px 40px; border-top: 1px solid #e2e8f0; text-align: center;">
+                        <p style="color: #a0aec0; font-size: 13px; line-height: 1.5; margin: 0 0 4px;">
+                            &copy; 2026 <strong style="color: #718096;">Mosquizto</strong>. All rights reserved.
+                        </p>
+                        <p style="color: #cbd5e0; font-size: 12px; margin: 0;">
+                            This is an automated message. Please do not reply to this email.
+                        </p>
+                    </td>
+                </tr>
+
+            </table>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>

@@ -13,4 +13,9 @@ public interface MailService {
         void sendConfirmLink(String emailTo, long userId, String fullName, String verifyCode);
 
         void sendVerifyCode(String emailTo, String verCode);
+
+        void sendCollectionShareInvite(String emailTo, String recipientName,
+                                       String sharerUsername, String collectionTitle, String role);
+        void sendCollectionReportNotification(String emailTo, String ownerName,
+                                              String reporterUsername, String collectionTitle, String reason, String description);
 }

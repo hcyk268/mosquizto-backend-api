@@ -20,5 +20,6 @@ public interface UserCollectionService {
     void approveJoinRequest(Integer collectionId, Long userId, AccessStatus status);
 
     void updateLastOpenedAt(Long userId,Integer collectionId);
+    void removeRecentOpenedCollection(Integer collectionId);
 }
 
