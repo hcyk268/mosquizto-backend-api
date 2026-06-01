@@ -38,4 +38,6 @@ public interface UserService {
     User getById(Long userId);
 
     void deleteUser(@Valid @Positive Long userId);
+
+    public PageResponse<UserResponse> searchUsers(String keyword, int page, int size);
 }

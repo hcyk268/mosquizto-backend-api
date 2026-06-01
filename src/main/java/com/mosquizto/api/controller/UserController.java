@@ -20,6 +20,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -129,5 +130,17 @@ public class UserController {
     public ResponseData<Void> deleteUser(@Valid @Positive @PathVariable Long userId) {
         this.userService.deleteUser(userId);
         return new ResponseData<>(HttpStatus.OK.value(), "Delete user successfully");
+    }
+
+    @Operation(summary = "Search user", description = "search similarity username", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Search user")
+    @GetMapping("/search")
+    public ResponseData<PageResponse<UserResponse>> searchUser(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size)
+    {
+        page = page > 0 ? page - 1 : 0;
+        return new ResponseData<>(HttpStatus.OK.value(), "Success",userService.searchUsers(keyword,page,size));
     }
 }

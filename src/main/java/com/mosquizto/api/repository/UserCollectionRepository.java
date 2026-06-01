@@ -91,4 +91,5 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
             "and uc.user.deletedAt is null " +
             "and uc.collection.deletedAt is null")
     boolean existsActiveById(@Param("id") UserCollectionId id);
+
 }

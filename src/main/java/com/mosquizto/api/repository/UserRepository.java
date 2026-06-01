@@ -42,4 +42,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("select u from User u " +
             "where u.deletedAt is null")
     Page<User> findAllActive(Pageable pageable);
+
+    @Query(value = "SELECT * FROM tbl_user " +
+            "WHERE similarity(username, :keyword) > 0.2 " +
+            "ORDER BY similarity(username, :keyword) DESC",
+            countQuery = "SELECT count(*) FROM tbl_user WHERE similarity(username, :keyword) > 0.2",
+            nativeQuery = true)
+    Page<User> searchFuzzyByUsername(@Param("keyword") String keyword, Pageable pageable);
+    Page<User> findByUsernameContainingIgnoreCase(String keyword, Pageable pageable);
 }

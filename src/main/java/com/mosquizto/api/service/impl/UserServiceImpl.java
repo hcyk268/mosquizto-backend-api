@@ -19,6 +19,7 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Service
@@ -184,6 +186,35 @@ public class UserServiceImpl implements UserService {
         user.delete(currentUser);
         this.userRepository.save(user);
         this.invalidateDeletedUserAfterCommit(user.getUsername());
+    }
+
+    @Override
+    public PageResponse<UserResponse> searchUsers(String keyword, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> userPage;
+
+        if (keyword == null || keyword.trim().isEmpty()) {
+            // Không có keyword -> Lấy tất cả
+            userPage = userRepository.findAll(pageable);
+        } else if (keyword.trim().length() < 3) {
+            // Từ khóa quá ngắn -> Dùng search chuỗi con cơ bản
+            userPage = userRepository.findByUsernameContainingIgnoreCase(keyword.trim(), pageable);
+        } else {
+            // Từ khóa đủ dài -> Dùng search gần giống (Trigram)
+            userPage = userRepository.searchFuzzyByUsername(keyword.trim(), pageable);
+        }
+
+        List<UserResponse> content = userPage.getContent().stream()
+                .map(userMapper::toResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.<UserResponse>builder()
+                .page(page)
+                .size(size)
+                .totalElements(userPage.getTotalElements())
+                .totalPages(userPage.getTotalPages())
+                .items(content)
+                .build();
     }
 
     private void evictUserDetailsAfterCommit(String username) {
