@@ -16,6 +16,8 @@ import static io.qdrant.client.ValueFactory.value; // Recommended for clean payl
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -33,12 +35,12 @@ public class VectorStoreServiceImpl implements VectorStoreService {
             try {
                 qdrantClient.createCollectionAsync(
                         COLLECTION_NAME,
-                        Collections.VectorParams.newBuilder()
+                        Collections.VectorParams.newBuilder()  // ← sai overload!
                                 .setSize(VECTOR_SIZE)
                                 .setDistance(Collections.Distance.Cosine)
                                 .build()
                 ).get();
-            } catch (InterruptedException | java.util.concurrent.ExecutionException ex) {
+            } catch (InterruptedException | ExecutionException ex) {
                 // Best practice: Restore the interrupted status
                 if (ex instanceof InterruptedException) {
                     Thread.currentThread().interrupt();
@@ -86,6 +88,31 @@ public class VectorStoreServiceImpl implements VectorStoreService {
         //qdrantClient.getCollectionInfoAsync(COLLECTION_NAME).get().
         return null ;
     }
+
+    @Override
+    public void deleteCollection(Integer collectionId) {
+        if (collectionId == null) {
+            log.warn("Collection ID rỗng, bỏ qua thao tác xóa trên Qdrant.");
+            return;
+        }
+
+        try {
+            // Tạo Point ID từ collectionId (vì lúc upsert bạn dùng .setNum(col.getId()))
+            Points.PointId pointId = Points.PointId.newBuilder()
+                    .setNum(collectionId)
+                    .build();
+
+            // Gọi lệnh xóa
+            qdrantClient.deleteAsync(
+                    COLLECTION_NAME,
+                    List.of(pointId)
+            ).get(); // Dùng .get() để chờ kết quả
+
+            log.info("🗑️ Đã xóa thành công collection ID {} khỏi Qdrant", collectionId);
+        } catch (Exception e) {
+            log.error("❌ Lỗi khi xóa collection ID {} khỏi Qdrant: {}", collectionId, e.getMessage(), e);
+        }
+    }   
 
 
     private List<Float> toFloatList(float[] arr) {

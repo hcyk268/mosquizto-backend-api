@@ -48,10 +48,7 @@ public class CollectionServiceImpl implements CollectionService {
         this.userCollectionRepository.save(userCollection);
         collectionSearchService.upsert(savedCollection);
         try {
-            // Biến Text thành Vector (384 chiều)
             float[] vector = embeddingService.embedCollection(savedCollection);
-
-            // Bắn Vector + Payload vào Qdrant
             vectorStoreService.upsertCollection(savedCollection, vector);
         } catch (Exception e) {
             log.error("Failed to sync collection to Qdrant: {}", savedCollection.getId(), e);
@@ -103,6 +100,16 @@ public class CollectionServiceImpl implements CollectionService {
         this.collectionMapper.updateEntity(collection, request);
         var updatedCollection = collectionRepository.save(collection);
         collectionSearchService.upsert(updatedCollection);
+        if(!collection.getDescription().equals(request.getDescription())
+                || !collection.getTitle().equals(request.getTitle()))
+        {
+            try {
+                float[] vector = embeddingService.embedCollection(updatedCollection);
+                vectorStoreService.upsertCollection(updatedCollection, vector);
+            } catch (Exception e) {
+                log.error("Failed to sync collection to Qdrant: {}", updatedCollection.getId(), e);
+            }
+        }
     }
 
     @Override
@@ -115,7 +122,11 @@ public class CollectionServiceImpl implements CollectionService {
         membershipResolver.requireCanDelete(collection, user);
 
         collection.delete(user);
-        this.runAfterCommit(() -> this.collectionSearchService.delete(id));
+        this.runAfterCommit(() ->
+        {
+            this.collectionSearchService.delete(id);
+            this.vectorStoreService.deleteCollection(id);
+        });
     }
 
     @Override
