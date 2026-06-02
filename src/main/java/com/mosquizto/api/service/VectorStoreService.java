@@ -8,4 +8,5 @@ public interface VectorStoreService {
     public void ensureCollection() ;
     public void upsertCollection(Collection col, float[] vector);
     public List<Collection> getEmbeddedCollections() ;
+    void deleteCollection(Integer collectionId);
 }

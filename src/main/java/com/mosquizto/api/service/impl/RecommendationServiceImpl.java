@@ -119,7 +119,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     }
 
     public List<String> getRecommendedCollectionId(int page, int size) throws ExecutionException, InterruptedException {
-        // Lấy danh sách đã xem
+        // 1. Lấy danh sách ID đã xem từ DB
         var recentOpened = collectionService.getRecentOpenedCollection();
         log.info("{} 🕒 Recent Opened từ DB: {} collections.", TAG, recentOpened.size());
 
@@ -133,83 +133,42 @@ public class RecommendationServiceImpl implements RecommendationService {
             return List.of();
         }
 
-        List<Points.PointId> pointIds = recentIdsStr.stream()
+        // 2. Map sang Qdrant PointId
+        List<Points.PointId> positiveIds = recentIdsStr.stream()
                 .map(id -> Points.PointId.newBuilder().setNum(Integer.valueOf(id)).build())
                 .toList();
 
-        // Lấy vector từ Qdrant
-        log.info("{} 🔌 Đang truy xuất vectors từ Qdrant cho các IDs: {}", TAG, recentIdsStr);
-        Points.Filter idFilter = Points.Filter.newBuilder()
-                .addMust(Points.Condition.newBuilder()
-                        .setHasId(Points.HasIdCondition.newBuilder().addAllHasId(pointIds)))
-                .build();
-        var retrievedPoints = qdrantClient.retrieveAsync(
-                COLLECTION_NAME,
-                pointIds,
-                Points.WithPayloadSelector.newBuilder()
-                        .setEnable(false)
-                        .build(),
-                Points.WithVectorsSelector.newBuilder()
-                        .setEnable(true)
-                        .build(),
-                null
-        ).get();
-        log.info("Retrieved size = {}", retrievedPoints.size());
-
-        for (var p : retrievedPoints) {
-            log.info(
-                    "ID={} vectorSize={}",
-                    p.getId().getNum(),
-                    p.getVectors().getVector().getDataCount()
-            );
-        }
-        // Lọc vector hợp lệ
-        List<float[]> recentVectors = retrievedPoints.stream()
-                .map(rp -> {
-                    var dataList = rp.getVectors().getVector().getDataList();
-                    if (dataList == null || dataList.isEmpty()) {
-                        return new float[0];
-                    }
-                    float[] arr = new float[dataList.size()];
-                    for (int i = 0; i < dataList.size(); i++) {
-                        arr[i] = dataList.get(i).floatValue();
-                    }
-                    return arr;
-                })
-                .filter(arr -> arr.length == 384)
-                .toList();
-        log.info("{} 📊 Đã lấy được {} vectors hợp lệ (384 dims) từ Qdrant.", TAG, recentVectors.size());
-
-        if (recentVectors.isEmpty()) {
-            log.error("{} ❌ KHÔNG CÓ VECTOR HỢP LỆ. Có thể do data chưa được Sync hoặc chưa Embed.", TAG);
-            return List.of();
-        }
-
-        float[] centroid = centroidCalculator.compute(recentVectors);
         int offset = page * size;
+        log.info("{} 🔎 Sử dụng Qdrant Recommend API (Tự động tính Centroid) với Offset: {}", TAG, offset);
 
-        log.info("{} 🔎 Đang thực hiện Vector Search (Cosine Similarity) với Offset: {}", TAG, offset);
-        List<Points.ScoredPoint> results = qdrantClient.searchAsync(
-                Points.SearchPoints.newBuilder()
+        // 3. BÙM! Gọi thẳng Recommend API (Không cần Retrieve hay tính Centroid thủ công)
+        List<Points.ScoredPoint> results = qdrantClient.recommendAsync(
+                Points.RecommendPoints.newBuilder()
                         .setCollectionName(COLLECTION_NAME)
-                        .addAllVector(toFloatList(centroid))
+                        .addAllPositive(positiveIds) // Truyền thẳng các ID để Qdrant tự tính trung bình
                         .setLimit(size)
                         .setOffset(offset)
                         .setWithPayload(Points.WithPayloadSelector.newBuilder().setEnable(true).build())
                         .setFilter(Points.Filter.newBuilder()
+                                // Chỉ lấy collection Public
                                 .addMust(Points.Condition.newBuilder()
                                         .setField(Points.FieldCondition.newBuilder()
                                                 .setKey("isPublic")
                                                 .setMatch(Points.Match.newBuilder().setBoolean(true).build()).build()).build())
+                                // Loại bỏ các ID mà người dùng ĐÃ XEM ra khỏi danh sách gợi ý
                                 .addMustNot(Points.Condition.newBuilder()
-                                        .setHasId(Points.HasIdCondition.newBuilder().addAllHasId(pointIds).build()).build())
+                                        .setHasId(Points.HasIdCondition.newBuilder().addAllHasId(positiveIds).build()).build())
                                 .build())
                         .build()
         ).get();
 
-        return results.stream()
-                .map(p -> p.getPayloadOrDefault("collectionId", null).getStringValue())
+        // 4. Trả về kết quả
+        List<String> recommendedIds = results.stream()
+                .map(p -> String.valueOf(p.getId().getNum()))
                 .toList();
+
+        log.info("{} ✅ Lấy thành công {} IDs từ Recommend API.", TAG, recommendedIds.size());
+        return recommendedIds;
     }
 
     private List<Float> toFloatList(float[] arr) {
