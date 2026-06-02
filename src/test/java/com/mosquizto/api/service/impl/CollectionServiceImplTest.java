@@ -5,10 +5,7 @@ import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
-import com.mosquizto.api.service.CollectionMembershipResolver;
-import com.mosquizto.api.service.CollectionSearchService;
-import com.mosquizto.api.service.CurrentUserProvider;
-import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.service.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -52,6 +49,10 @@ class CollectionServiceImplTest {
 
     private CollectionServiceImpl collectionService;
 
+    @Mock
+    private EmbeddingService embeddingService ;
+    @Mock
+    private VectorStoreService vectorStoreService ;
     @BeforeEach
     void setUp() {
         this.collectionService = new CollectionServiceImpl(
@@ -61,7 +62,10 @@ class CollectionServiceImplTest {
                 this.userCollectionRepository,
                 this.userCollectionService,
                 this.collectionSearchService,
-                this.membershipResolver
+                this.membershipResolver,
+                this.embeddingService,
+                this.vectorStoreService
+
         );
     }
 

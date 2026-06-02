@@ -10,12 +10,9 @@ import com.mosquizto.api.model.User;
 import com.mosquizto.api.model.UserCollection;
 import com.mosquizto.api.repository.CollectionRepository;
 import com.mosquizto.api.repository.UserCollectionRepository;
-import com.mosquizto.api.service.CollectionMembershipResolver;
-import com.mosquizto.api.service.CollectionSearchService;
-import com.mosquizto.api.service.CollectionService;
-import com.mosquizto.api.service.CurrentUserProvider;
-import com.mosquizto.api.service.UserCollectionService;
+import com.mosquizto.api.service.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,6 +24,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CollectionServiceImpl implements CollectionService {
 
     private final CollectionRepository collectionRepository;
@@ -36,7 +34,8 @@ public class CollectionServiceImpl implements CollectionService {
     private final UserCollectionService userCollectionService;
     private final CollectionSearchService collectionSearchService;
     private final CollectionMembershipResolver membershipResolver;
-
+    private final EmbeddingService embeddingService ;
+    private final VectorStoreService vectorStoreService ;
     @Override
     @Transactional
     public Integer addCollection(CollectionRequest request) {
@@ -48,6 +47,15 @@ public class CollectionServiceImpl implements CollectionService {
 
         this.userCollectionRepository.save(userCollection);
         collectionSearchService.upsert(savedCollection);
+        try {
+            // Biến Text thành Vector (384 chiều)
+            float[] vector = embeddingService.embedCollection(savedCollection);
+
+            // Bắn Vector + Payload vào Qdrant
+            vectorStoreService.upsertCollection(savedCollection, vector);
+        } catch (Exception e) {
+            log.error("Failed to sync collection to Qdrant: {}", savedCollection.getId(), e);
+        }
         return savedCollection.getId();
     }
 
@@ -155,6 +163,23 @@ public class CollectionServiceImpl implements CollectionService {
 
         UserCollection membership = membershipResolver.getMembership(user.getId(), collectionId);
         return collection.canView(user, membership);
+    }
+
+    @Override
+    public List<Collection> getCollectionsByIdsIn(List<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
+        // Parse String ID từ Qdrant về Integer để query DB
+        List<Integer> intIds = ids.stream()
+                .map(Integer::parseInt)
+                .toList();
+
+        // Query thẳng vào DB, tốc độ chớp nhoáng
+        List<Collection> collections = collectionRepository.findByIdIn(intIds);
+
+        return collections ;
     }
 
     private void runAfterCommit(Runnable action) {
