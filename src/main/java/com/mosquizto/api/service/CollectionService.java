@@ -21,5 +21,7 @@ public interface CollectionService {
     List<CollectionResponse> getRecentOpenedCollection() ;
 
     boolean isAccessible(Integer collectionId);
+
+    List<Collection> getCollectionsByIdsIn(List<String> ids);
 }
 

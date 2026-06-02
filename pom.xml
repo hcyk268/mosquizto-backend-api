@@ -132,6 +132,37 @@
 			<artifactId>meilisearch-java</artifactId>
 			<version>0.20.0</version> <!-- Use latest version -->
 		</dependency>
+
+
+		<!-- AI-->
+		<dependency>
+			<groupId>io.qdrant</groupId>
+			<artifactId>client</artifactId>
+			<version>1.12.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.microsoft.onnxruntime</groupId>
+			<artifactId>onnxruntime</artifactId>
+			<version>1.11.0</version>
+		</dependency>
+
+		<!-- HuggingFace -->
+		<dependency>
+			<groupId>ai.djl.huggingface</groupId>
+			<artifactId>tokenizers</artifactId>
+			<version>0.27.0</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java</artifactId>
+			<version>3.25.3</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.protobuf</groupId>
+			<artifactId>protobuf-java-util</artifactId>
+			<version>3.25.3</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>

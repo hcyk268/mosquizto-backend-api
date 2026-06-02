@@ -41,7 +41,12 @@ public class CollectionMapper {
                 .count(collection.getItemCount())
                 .build();
     }
+    public Collection toEntity(CollectionResponse collectionResponse, User createdBy)
+    {
+        return Collection.initialize(createdBy,collectionResponse.getTitle(),
+                collectionResponse.getDescription(),collectionResponse.getVisibility());
 
+    }
     public CollectionReportResponse toResponse(CollectionReport report) {
         return CollectionReportResponse.builder()
                 .id(report.getId())

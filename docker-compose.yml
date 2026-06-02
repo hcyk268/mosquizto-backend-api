@@ -53,6 +53,8 @@ services:
       SERVER_URL: http://${VPS_IP:-localhost}:8080/
       MEILI_SEARCH_HOST: http://meilisearch:7700
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      QDRANT_HOST: qdrant
+      QDRANT_PORT: 6334
     depends_on:
       postgres:
         condition: service_healthy
@@ -64,7 +66,7 @@ services:
 
   meilisearch:
     image: getmeili/meilisearch:v1.7.2
-    container_name: meilisearch
+    container_name: mosquizto_meilisearch
     ports:
       - "7700:7700"
     volumes:
@@ -78,7 +80,16 @@ services:
       timeout: 5s
       retries: 5
     restart: always
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: mosquizto_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
 volumes:
   pg_data:
   redis_data:
   meilisearch:
+  qdrant_data:

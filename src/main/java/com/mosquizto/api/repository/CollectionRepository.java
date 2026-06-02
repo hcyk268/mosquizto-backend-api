@@ -11,6 +11,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -72,4 +73,6 @@ public interface CollectionRepository extends JpaRepository<Collection, Integer>
             "WHERE ci.collection.id = c.id AND ci.deletedAt IS NULL) " +
             "WHERE c.deletedAt IS NULL")
     void syncAllCounts();
+
+    List<Collection> findByIdIn(List<Integer> ids);
 }
