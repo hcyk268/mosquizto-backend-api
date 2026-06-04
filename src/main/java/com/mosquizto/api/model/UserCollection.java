@@ -66,6 +66,10 @@ public class UserCollection {
     @JoinColumn(name = "deleted_by")
     private User deletedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "invited_by")
+    private User invitedBy;
+
     public static UserCollection createOwner(User user, Collection collection) {
         validateUserAndCollection(user, collection);
 
@@ -78,7 +82,7 @@ public class UserCollection {
                 .build();
     }
 
-    public static UserCollection createShareInvite(User user, Collection collection, CollectionRole role) {
+    public static UserCollection createShareInvite(User user, Collection collection, CollectionRole role , User inviter) {
         validateUserAndCollection(user, collection);
         validateShareRole(role);
 
@@ -88,6 +92,7 @@ public class UserCollection {
                 .collection(collection)
                 .role(role)
                 .accessStatus(AccessStatus.PENDING)
+                .invitedBy(inviter)
                 .build();
     }
 

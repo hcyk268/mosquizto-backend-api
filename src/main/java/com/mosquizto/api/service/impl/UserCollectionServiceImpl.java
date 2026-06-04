@@ -1,12 +1,15 @@
 package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.ShareCollectionRequest;
+import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.MemberResponse;
+import com.mosquizto.api.dto.response.ShareCollectionResponse;
 import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ConflictException;
 import com.mosquizto.api.exception.ErrorCode;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
+import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.mapper.UserCollectionMapper;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.User;
@@ -45,8 +48,8 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Override
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
-        User owner = this.currentUserProvider.getCurrentUser();
-        String usernameOwner = owner.getUsername();
+        User inviter = this.currentUserProvider.getCurrentUser();
+        String usernameOwner = inviter.getUsername();
         String recipientName = shareCollectionRequest.getUsername() ;
         User targetUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
                 new ResourceNotFoundException(recipientName + "does not exits"));
@@ -69,14 +72,24 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .build();
 
         UserCollection userCollection = this.userCollectionRepository.findById(id)
-                .orElseGet(() -> UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole()));
+                .orElseGet(null);
 
-        userCollection.restore();
-        userCollection.changeRole(shareCollectionRequest.getRole());
-        userCollection.markPending();
-        this.userCollectionRepository.save(userCollection);
+        if (userCollection != null) {
+            if (userCollection.isActive()) {
+                throw new ConflictException("User has already joined this collection");
+            }
+            userCollection.restore();
+            userCollection.setInvitedBy(inviter);
+            userCollection.changeRole(shareCollectionRequest.getRole());
+            userCollection.markPending();
+
+            this.userCollectionRepository.save(userCollection);
+        } else {
+            userCollection = UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole(), inviter);
+            this.userCollectionRepository.save(userCollection);
+        }
         // gửi mail
-        mailService.sendCollectionShareInvite(targetUser.getEmail(), targetUser.getUsername(),owner.getUsername()
+        mailService.sendCollectionShareInvite(targetUser.getEmail(), targetUser.getUsername(),inviter.getUsername()
                 ,collection.getTitle(),shareCollectionRequest.getRole().name());
     }
 
@@ -207,11 +220,40 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     @Async
     public void updateLastOpenedAt(Long userId, Integer collectionId) {
-        userCollectionRepository.findActiveByUserIdAndCollectionId(userId, collectionId)
-                .ifPresent(userCollection -> {
-                    userCollection.touchLastOpenedAt(new Date());
-                    userCollectionRepository.save(userCollection);
-                });
+        // Tìm kiếm xem bản ghi UserCollection đã tồn tại chưa
+        UserCollection existingRecord = userCollectionRepository
+                .findActiveByUserIdAndCollectionId(userId, collectionId)
+                .orElse(null);
+
+        if (existingRecord != null) {
+            // Đã tồn tại -> Chỉ cập nhật thời gian mở cuối (lastOpenedAt)
+            existingRecord.touchLastOpenedAt(new Date());
+            userCollectionRepository.save(existingRecord);
+        } else {
+            // Chưa tồn tại -> Tìm User và Collection tương ứng để tạo mới
+            // Sử dụng repository để lấy đối tượng User và Collection (cần thiết để liên kết khoá ngoại)
+            User user = userRepository.findById(userId).orElse(null);
+            Collection collection = collectionRepository.findById(collectionId).orElse(null);
+
+            // Đảm bảo User và Collection hợp lệ trước khi lưu
+            if (user != null && collection != null) {
+                UserCollectionId id = UserCollectionId.builder()
+                        .userId(userId)
+                        .collectionId(collectionId)
+                        .build();
+
+                UserCollection newUserCollection = UserCollection.builder()
+                        .id(id)
+                        .user(user)
+                        .collection(collection)
+                        .role(CollectionRole.VIEWER)            // Role mặc định là VIEWER
+                        .accessStatus(AccessStatus.ENABLE)      // Trạng thái ENABLE
+                        .lastOpenedAt(new Date())
+                        .build();
+
+                userCollectionRepository.save(newUserCollection);
+            }
+        }
     }
     @Override
     @Transactional
@@ -222,5 +264,68 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Collection is not found or you don't have permission"));
         userCollection.setLastOpenedAt(null);
         userCollectionRepository.save(userCollection);
+    }
+
+    @Override
+    public List<ShareCollectionResponse> getMyPendingInvitations() {
+        Long userId = this.currentUserProvider.getCurrentUser().getId();
+        List<UserCollection> pendingList = userCollectionRepository.findPendingInvitationsByUserId(userId);
+
+        return pendingList.stream().map(uc -> {
+            Collection c = uc.getCollection();
+            User inviter = uc.getInvitedBy();
+
+            ShareCollectionResponse res = new ShareCollectionResponse();
+            res.setCollectionId(c.getId());
+            res.setTitle(c.getTitle());
+            res.setDescription(c.getDescription());
+            res.setInviteAt(uc.getCreatedAt());
+            res.setCollectionRole(uc.getRole());
+            res.setAccessStatus(uc.getAccessStatus());
+
+            if (inviter != null) {
+                res.setInviterId(inviter.getId());
+                res.setInviterUsername(inviter.getUsername());
+            } else {
+                res.setInviterId(c.getCreatedBy().getId());
+                res.setInviterUsername(c.getCreatedBy().getUsername());
+            }
+
+            return res;
+        }).toList();
+    }
+
+    @Override
+    @Transactional
+    public void respondToShareInvite(Integer collectionId, AccessStatus status) {
+        Long userId = this.currentUserProvider.getCurrentUser().getId();
+        UserCollectionId id = new UserCollectionId(userId, collectionId);
+
+        UserCollection request = userCollectionRepository.findActiveById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Invitation not found"));
+
+        // Chỉ cho phép xử lý nếu trạng thái đang là PENDING
+        if (!request.isPending()) {
+            throw new InvalidDataException("This invitation is no longer pending");
+        }
+
+        // Người được mời ấn Accept (ENABLE) hoặc Deny (DENIED)
+        if (status == AccessStatus.DENIED) {
+            request.deny();
+        } else if (status == AccessStatus.ENABLE) {
+            request.approve();
+        } else {
+            throw new InvalidDataException("Invalid status");
+        }
+
+        userCollectionRepository.save(request);
+    }
+
+    @Override
+    public CollectionRole getRoleOfCollection(Integer collectionId) { // Bỏ inviterId đi cũng được
+        Long currentUserId = currentUserProvider.getCurrentUser().getId();
+
+        return this.userCollectionRepository.getCollectionRole(collectionId, currentUserId)
+                .orElse(CollectionRole.UNKNOW); // Hoặc ném Exception nếu thích
     }
 }
