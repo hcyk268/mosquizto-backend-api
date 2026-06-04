@@ -87,7 +87,7 @@ public class UserCollectionController {
     }
 
     @Operation(summary = "respond to invitation" , security = @SecurityRequirement(name = "bearerAuth"))
-    @PutMapping("/respond/invitation")
+    @PatchMapping("/respond/invitation")
     public ResponseData<Void> respondInvitation(
             @RequestParam("collectionId" )Integer collectionId ,
             @RequestParam("accessStatus") AccessStatus accessStatus
@@ -106,3 +106,4 @@ public class UserCollectionController {
         return new ResponseData<>(HttpStatus.OK.value(), "success", role);
     }
 }
+

@@ -71,8 +71,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 .collectionId(collection.getId())
                 .build();
 
-        UserCollection userCollection = this.userCollectionRepository.findById(id)
-                .orElseGet(null);
+        UserCollection userCollection = this.userCollectionRepository.findById(id).orElse(null);
 
         if (userCollection != null) {
             if (userCollection.isActive()) {
