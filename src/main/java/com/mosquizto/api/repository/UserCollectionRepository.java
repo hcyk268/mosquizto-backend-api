@@ -92,4 +92,19 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
             "and uc.collection.deletedAt is null")
     boolean existsActiveById(@Param("id") UserCollectionId id);
 
+    // Lấy danh sách các lời mời (Pending) của user hiện tại
+    @Query("select uc from UserCollection uc join fetch uc.collection c " +
+            "where uc.user.id = :userId " +
+            "and uc.accessStatus = 'PENDING' " +
+            "and uc.deletedAt is null " +
+            "and uc.user.deletedAt is null " +
+            "and c.deletedAt is null")
+    List<UserCollection> findPendingInvitationsByUserId(@Param("userId") Long userId);
+
+    // Hiện tại mình đang có quyền gì với collection này -> để biết mà edit hay ko
+    @Query("select uc.role from UserCollection uc " +
+            "where uc.collection.id = :collectionId AND uc.user.id = :userId")
+    Optional<CollectionRole> getCollectionRole(
+            @Param("collectionId") Integer collectionId,
+            @Param("userId") Long userId);
 }
