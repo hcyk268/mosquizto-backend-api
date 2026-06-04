@@ -16,10 +16,13 @@ import com.mosquizto.api.service.CollectionMembershipResolver;
 import com.mosquizto.api.service.CollectionReportService;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.MailService;
+import com.mosquizto.api.util.CollectionReportStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @Service
@@ -59,6 +62,36 @@ public class CollectionReportServiceImpl implements CollectionReportService {
         mailService.sendCollectionReportNotification(targetUser.getEmail(),recipientName,reporter.getEmail(),
                 collection.getTitle(),request.getReason(), request.getDescription());
         return this.collectionMapper.toResponse(this.collectionReportRepository.save(report));
+    }
+
+    @Override
+    public List<CollectionReportResponse> getMyPendingReports() {
+        Long currentUserId = currentUserProvider.getCurrentUser().getId();
+
+        List<CollectionReport> pendingReports = this.collectionReportRepository
+                .findReportsByCollectionOwnerAndStatus(currentUserId, CollectionReportStatus.PENDING);
+
+        // Map sang Response (Tuỳ theo cấu trúc DTO CollectionReportResponse của bạn)
+        return pendingReports.stream().map(r -> new CollectionReportResponse(
+                r.getId(), r.getCollection().getId(),r.getReporter().getId(),
+                r.getReason(),r.getDescription(),r.getStatus(), r.getCreatedAt() , r.getUpdatedAt()
+        )).toList();
+    }
+
+    @Override
+    @Transactional
+    public void processReport(Long reportId, CollectionReportStatus status) {
+        Long currentUserId = currentUserProvider.getCurrentUser().getId();
+
+        CollectionReport report = this.collectionReportRepository.findById(reportId)
+                .orElseThrow(() -> new ResourceNotFoundException("Report not found"));
+
+        if (!report.getCollection().getCreatedBy().getId().equals(currentUserId)) {
+            throw new AccessDeniedException("You do not have permission to modify this report");
+        }
+
+        report.setStatus(status);
+        this.collectionReportRepository.save(report);
     }
 
     private String cleanRequired(String value, String message) {
