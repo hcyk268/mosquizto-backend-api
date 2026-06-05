@@ -4,6 +4,7 @@ import com.mosquizto.api.dto.request.ShareCollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.MemberResponse;
 import com.mosquizto.api.dto.response.ShareCollectionResponse;
+import com.mosquizto.api.event.dto.CollectionSharedEvent;
 import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ConflictException;
 import com.mosquizto.api.exception.ErrorCode;
@@ -25,6 +26,7 @@ import com.mosquizto.api.service.UserService;
 import com.mosquizto.api.util.AccessStatus;
 import com.mosquizto.api.util.CollectionRole;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,7 +46,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     private final UserCollectionRepository userCollectionRepository;
     private final UserRepository userRepository ;
     private final UserCollectionMapper userCollectionMapper;
-    private final MailService mailService ;
+    private final ApplicationEventPublisher eventPublisher;
     @Override
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
@@ -88,8 +90,9 @@ public class UserCollectionServiceImpl implements UserCollectionService {
             this.userCollectionRepository.save(userCollection);
         }
         // gửi mail
-        mailService.sendCollectionShareInvite(targetUser.getEmail(), targetUser.getUsername(),inviter.getUsername()
-                ,collection.getTitle(),shareCollectionRequest.getRole().name());
+        eventPublisher.publishEvent(new CollectionSharedEvent(
+                targetUser.getEmail(), targetUser.getUsername(), inviter.getUsername(), collection.getTitle(), shareCollectionRequest.getRole().name()
+        ));
     }
 
     @Override
