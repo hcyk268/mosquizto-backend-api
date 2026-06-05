@@ -1,7 +1,9 @@
 spring:
   application:
     name: Mosquizto-Backend
-
+  websocket:
+    message-time-out: ${WS_MESSAGE_TIME_OUT}
+    connect-endpoint: ${WS_CONNECT_ENDPOINT}
   datasource:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}

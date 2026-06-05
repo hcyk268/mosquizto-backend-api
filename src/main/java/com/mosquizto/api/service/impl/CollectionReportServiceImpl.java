@@ -2,6 +2,7 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.CollectionReportRequest;
 import com.mosquizto.api.dto.response.CollectionReportResponse;
+import com.mosquizto.api.event.dto.CollectionReportEvent;
 import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.InvalidDataException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
@@ -18,6 +19,7 @@ import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.MailService;
 import com.mosquizto.api.util.CollectionReportStatus;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -35,6 +37,7 @@ public class CollectionReportServiceImpl implements CollectionReportService {
     private final CollectionMembershipResolver membershipResolver;
     private final MailService mailService ;
     private final UserRepository userRepository ;
+    private final ApplicationEventPublisher eventPublisher;
     @Override
     @Transactional
     public CollectionReportResponse reportCollection(Integer collectionId, CollectionReportRequest request) {
@@ -59,8 +62,11 @@ public class CollectionReportServiceImpl implements CollectionReportService {
         String recipientName = collection.getCreatedBy().getUsername() ;
         User targetUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
                 new ResourceNotFoundException(recipientName + "does not exits"));
-        mailService.sendCollectionReportNotification(targetUser.getEmail(),recipientName,reporter.getEmail(),
-                collection.getTitle(),request.getReason(), request.getDescription());
+//        mailService.sendCollectionReportNotification(targetUser.getEmail(),recipientName,reporter.getEmail(),
+//                collection.getTitle(),request.getReason(), request.getDescription());
+//
+         eventPublisher.publishEvent(new CollectionReportEvent(recipientName, targetUser.getEmail(),
+                 reporter.getUsername(), reporter.getEmail(), collection.getTitle(), reason,description));
         return this.collectionMapper.toResponse(this.collectionReportRepository.save(report));
     }
 

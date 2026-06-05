@@ -50,6 +50,7 @@ public class SecurityConfig {
                         // .anyRequest().permitAll())
                         .requestMatchers("/auth/logout").authenticated()
                         .requestMatchers("/auth/**", "/user/confirm/**", "/error").permitAll()
+                        .requestMatchers("/ws-connection/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(jwtAuthenticationEntryPoint))
