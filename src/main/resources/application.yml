@@ -21,6 +21,9 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
+  sendgrid:
+    api-key: ${SEND_GRID}
+
   mail:
     from: ${SPRING_MAIL_ADDRESS}
     username: ${SPRING_MAIL_USERNAME}
@@ -74,3 +77,9 @@ meilisearch:
 
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm
+
+app:
+  mail:
+    provider: sendgrid
+    from: no-reply@cskh-group.com
+    from-name: Mosquizto Support

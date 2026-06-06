@@ -7,6 +7,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +25,8 @@ import java.util.Objects;
 @Slf4j
 @RequiredArgsConstructor
 @Service
-public class MailServiceImpl implements MailService {
+@ConditionalOnProperty(name = "app.mail.provider", havingValue = "smtp")
+public class SMTPEmailImpl implements MailService {
 
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
