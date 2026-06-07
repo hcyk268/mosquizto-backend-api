@@ -39,7 +39,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}?options=-c%20timezone=Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
       SPRING_REDIS_HOST: redis
@@ -55,6 +55,8 @@ services:
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6334
+      WS_MESSAGE_TIME_OUT: ${WS_MESSAGE_TIME_OUT}
+      WS_CONNECT_ENDPOINT: ${WS_CONNECT_ENDPOINT}
     depends_on:
       postgres:
         condition: service_healthy

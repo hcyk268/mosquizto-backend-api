@@ -1,4 +1,11 @@
 package com.mosquizto.api.util;
 
 public enum NotificationType {
+    COLLECTION_SHARED,
+    COLLECTION_REPORTED ,
+    JOIN_REQUEST_RECEIVED,
+    JOIN_REQUEST_APPROVED,
+    JOIN_REQUEST_DENIED,
+    HAS_FOLLOWER ,
+    COLLECTION_CREATED
 }

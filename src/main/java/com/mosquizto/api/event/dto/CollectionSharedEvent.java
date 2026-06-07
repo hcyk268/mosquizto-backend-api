@@ -5,5 +5,6 @@ public record CollectionSharedEvent(
         String targetUsername,
         String inviterName,
         String collectionTitle,
-        String role
+        String role,
+        Long collectionId
 ) {}
