@@ -92,7 +92,7 @@ public class UserCollectionServiceImpl implements UserCollectionService {
         // gửi mail
         eventPublisher.publishEvent(new CollectionSharedEvent(
                 targetUser.getEmail(), targetUser.getUsername(), inviter.getUsername(), collection.getTitle(), shareCollectionRequest.getRole().name() ,
-                Long.valueOf(String.valueOf(userCollection.getId()))
+                collection.getId().longValue()
         ));
     }
 
