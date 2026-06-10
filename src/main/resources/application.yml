@@ -24,7 +24,7 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
   sendgrid:
-    api-key: ${SEND_GRID}
+    api-key: ${SEND_GRID:}
 
   mail:
     from: ${SPRING_MAIL_ADDRESS}
@@ -82,6 +82,6 @@ endpoint:
 
 app:
   mail:
-    provider: sendgrid
+    provider: ${APP_MAIL_PROVIDER:smtp}
     from: no-reply@cskh-group.com
     from-name: Mosquizto Support
