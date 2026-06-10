@@ -171,6 +171,10 @@ public class UserCollection {
         return isActive();
     }
 
+    public boolean canViewContent() {
+        return isActive() || isPending();
+    }
+
     public boolean isActive() {
         return AccessStatus.ENABLE.equals(this.accessStatus);
     }
@@ -181,6 +185,10 @@ public class UserCollection {
 
     public boolean isDenied() {
         return AccessStatus.DENIED.equals(this.accessStatus);
+    }
+
+    public void inviteBy(User invitedBy) {
+        this.invitedBy = invitedBy;
     }
 
     private static void validateUserAndCollection(User user, Collection collection) {

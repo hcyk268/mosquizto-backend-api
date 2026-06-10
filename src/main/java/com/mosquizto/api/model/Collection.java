@@ -76,6 +76,10 @@ public class Collection extends AbstractEntity<Integer> {
         return isPublic() || isOwnedBy(user) || (membership != null && membership.canView());
     }
 
+    public boolean canViewContent(User user, UserCollection membership) {
+        return isPublic() || isOwnedBy(user) || (membership != null && membership.canViewContent());
+    }
+
     public boolean canEdit(UserCollection membership) {
         return membership != null && membership.canEdit();
     }

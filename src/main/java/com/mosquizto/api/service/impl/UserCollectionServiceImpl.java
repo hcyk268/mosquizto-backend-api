@@ -51,23 +51,36 @@ public class UserCollectionServiceImpl implements UserCollectionService {
     @Transactional
     public void shareCollection(Integer collectionId, ShareCollectionRequest shareCollectionRequest) {
         User inviter = this.currentUserProvider.getCurrentUser();
-        String usernameOwner = inviter.getUsername();
-        String recipientName = shareCollectionRequest.getUsername() ;
-        User targetUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
-                new ResourceNotFoundException(recipientName + "does not exits"));
+        String recipientName = shareCollectionRequest.getUsername();
+        CollectionRole requestedRole = shareCollectionRequest.getRole();
 
         Collection collection = this.collectionRepository.findActiveById(collectionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        if (!collection.isOwnedBy(usernameOwner) &&  shareCollectionRequest.getRole() == CollectionRole.EDITOR) {
+        if (CollectionRole.OWNER.equals(requestedRole) || CollectionRole.UNKNOW.equals(requestedRole)) {
+            throw new InvalidDataException("Invalid collection role");
+        }
+
+        boolean owner = collection.isOwnedBy(inviter);
+        UserCollection inviterMembership = owner ? null : this.userCollectionRepository
+                .findActiveByUserIdAndCollectionId(inviter.getId(), collectionId)
+                .orElse(null);
+        boolean activeMember = owner || (inviterMembership != null && inviterMembership.canView());
+
+        if (!activeMember) {
             throw new AccessDeniedException("You do not have permission to share this collection");
         }
 
-        if (usernameOwner.equals(shareCollectionRequest.getUsername())) {
+        if (!owner && CollectionRole.EDITOR.equals(requestedRole)) {
+            throw new AccessDeniedException("Only collection owner can share editor role");
+        }
+
+        if (inviter.getUsername().equals(recipientName)) {
             throw new InvalidDataException("You cannot share this collection to yourself");
         }
 
-        User sharedUser = this.userService.getByUsername(shareCollectionRequest.getUsername());
+        User sharedUser = userRepository.findActiveByUsername(recipientName).orElseThrow(() ->
+                new ResourceNotFoundException(recipientName + " does not exist"));
         UserCollectionId id = UserCollectionId.builder()
                 .userId(sharedUser.getId())
                 .collectionId(collection.getId())
@@ -80,18 +93,18 @@ public class UserCollectionServiceImpl implements UserCollectionService {
                 throw new ConflictException("User has already joined this collection");
             }
             userCollection.restore();
-            userCollection.setInvitedBy(inviter);
-            userCollection.changeRole(shareCollectionRequest.getRole());
+            userCollection.inviteBy(inviter);
+            userCollection.changeRole(requestedRole);
             userCollection.markPending();
 
             this.userCollectionRepository.save(userCollection);
         } else {
-            userCollection = UserCollection.createShareInvite(sharedUser, collection, shareCollectionRequest.getRole(), inviter);
+            userCollection = UserCollection.createShareInvite(sharedUser, collection, requestedRole, inviter);
             this.userCollectionRepository.save(userCollection);
         }
         // gửi mail
         eventPublisher.publishEvent(new CollectionSharedEvent(
-                targetUser.getEmail(), targetUser.getUsername(), inviter.getUsername(), collection.getTitle(), shareCollectionRequest.getRole().name() ,
+                sharedUser.getEmail(), sharedUser.getUsername(), inviter.getUsername(), collection.getTitle(), requestedRole.name() ,
                 collection.getId().longValue()
         ));
     }

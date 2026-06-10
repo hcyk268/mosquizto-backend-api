@@ -24,7 +24,7 @@ public class CollectionMembershipResolver {
 
     public void requireCanView(Collection collection, User user) {
         UserCollection membership = getMembership(user.getId(), collection.getId());
-        if (!collection.canView(user, membership)) {
+        if (!collection.canViewContent(user, membership)) {
             throw new AccessDeniedException("You do not have permission to view this collection");
         }
     }
