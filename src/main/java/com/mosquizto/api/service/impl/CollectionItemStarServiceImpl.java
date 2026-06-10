@@ -76,6 +76,6 @@ public class CollectionItemStarServiceImpl implements CollectionItemStarService 
 
     private boolean canView(User user, Collection collection) {
         UserCollection membership = membershipResolver.getMembership(user.getId(), collection.getId());
-        return collection.canView(user, membership);
+        return collection.canViewContent(user, membership);
     }
 }

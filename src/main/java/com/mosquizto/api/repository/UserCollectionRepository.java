@@ -79,6 +79,15 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
             @Param("collectionId") Integer collectionId);
 
     @Query("select uc from UserCollection uc " +
+            "where uc.user.id = :userId " +
+            "and uc.collection.id = :collectionId " +
+            "and uc.accessStatus = :status " +
+            "and uc.deletedAt is null " +
+            "and uc.user.deletedAt is null " +
+            "and uc.collection.deletedAt is null")
+    Optional<UserCollection> findActiveByUserIdAndCollecionIdAndStautus(@Param("userId") Long userId, @Param("collectionId") Integer collectionId, @Param("status") AccessStatus status);
+
+    @Query("select uc from UserCollection uc " +
             "where uc.id = :id " +
             "and uc.deletedAt is null " +
             "and uc.user.deletedAt is null " +
