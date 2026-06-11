@@ -3,12 +3,8 @@ package com.mosquizto.api.controller;
 import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.ChangePasswordRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
-import com.mosquizto.api.dto.response.PageResponse;
-import com.mosquizto.api.dto.response.ResponseData;
-import com.mosquizto.api.dto.response.UserAchievementResponse;
-import com.mosquizto.api.dto.response.UserActivityResponse;
-import com.mosquizto.api.dto.response.UserResponse;
-import com.mosquizto.api.dto.response.UserStreakResponse;
+import com.mosquizto.api.dto.response.*;
+import com.mosquizto.api.service.FollowService;
 import com.mosquizto.api.service.UserEngagementService;
 import com.mosquizto.api.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +33,7 @@ public class UserController {
 
     private final UserService userService;
     private final UserEngagementService userEngagementService;
+    private final FollowService followService;
 
     @Operation(summary = "Add user", description = "Admin creates a user account.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "User created")
@@ -135,12 +132,75 @@ public class UserController {
     @Operation(summary = "Search user", description = "search similarity username", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Search user")
     @GetMapping("/search")
-    public ResponseData<PageResponse<UserResponse>> searchUser(
+    public ResponseData<PageResponse<UserSummaryResponse>> searchUser(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size)
     {
         page = page > 0 ? page - 1 : 0;
         return new ResponseData<>(HttpStatus.OK.value(), "Success",userService.searchUsers(keyword,page,size));
+    }
+
+    @Operation(summary = "Get user profile by username",
+            description = "Return public profile summary and whether the current user follows this profile.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "User profile returned")
+    @GetMapping("/profile/{username}")
+    public ResponseData<UserSummaryResponse> getUser(
+            @Parameter(description = "Username", example = "teacher_lan_ielts", required = true)
+            @PathVariable String username) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Successfully", this.userService.getUser(username));
+    }
+
+    @Operation(summary = "Get current user's followers",
+            description = "Return a paginated list of users who follow the current user.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Followers returned")
+    @GetMapping("/followers")
+    public ResponseData<PageResponse<UserSummaryResponse>> getFollowers(
+            @RequestParam(defaultValue = "1", required = false)
+            @Min(value = 1, message = "Page must be greater than 0") int page,
+            @RequestParam(defaultValue = "20", required = false)
+            @Min(value = 1, message = "Size must be greater than 0") int size) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Get followers success",
+                this.followService.getFollowers(page, size));
+    }
+
+    @Operation(summary = "Get users followed by current user",
+            description = "Return a paginated list of users followed by the current user.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Following users returned")
+    @GetMapping("/following")
+    public ResponseData<PageResponse<UserSummaryResponse>> getFollowing(
+            @RequestParam(defaultValue = "1", required = false)
+            @Min(value = 1, message = "Page must be greater than 0") int page,
+            @RequestParam(defaultValue = "20", required = false)
+            @Min(value = 1, message = "Size must be greater than 0") int size) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Get following success",
+                this.followService.getFollowing(page, size));
+    }
+
+    @Operation(summary = "Follow user",
+            description = "Follow the user identified by username.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "User followed")
+    @PostMapping("/follow/{username}")
+    public ResponseData<Void> follow(
+            @Parameter(description = "Username to follow", example = "teacher_lan_ielts", required = true)
+            @PathVariable String username) {
+        this.followService.follow(username);
+        return new ResponseData<>(HttpStatus.OK.value(), "Successfully");
+    }
+
+    @Operation(summary = "Unfollow user",
+            description = "Unfollow the user identified by username.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "User unfollowed")
+    @DeleteMapping("/follow/{username}")
+    public ResponseData<Void> unfollow(
+            @Parameter(description = "Username to unfollow", example = "teacher_lan_ielts", required = true)
+            @PathVariable String username) {
+        this.followService.unfollow(username);
+        return new ResponseData<>(HttpStatus.OK.value(), "Successfully");
     }
 }

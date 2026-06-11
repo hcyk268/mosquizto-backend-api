@@ -5,10 +5,12 @@ import com.mosquizto.api.dto.request.ChangePasswordRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
+import com.mosquizto.api.dto.response.UserSummaryResponse;
 import com.mosquizto.api.exception.*;
 import com.mosquizto.api.mapper.UserMapper;
 import com.mosquizto.api.model.Role;
 import com.mosquizto.api.model.User;
+import com.mosquizto.api.repository.FollowRepository;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
@@ -42,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final RedisTokenService redisTokenService;
     private final CacheManager cacheManager;
+    private final FollowRepository followRepository;
 
     @Override
     public User getByUsername(String username) {
@@ -189,7 +192,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public PageResponse<UserResponse> searchUsers(String keyword, int page, int size) {
+    public PageResponse<UserSummaryResponse> searchUsers(String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<User> userPage;
 
@@ -204,17 +207,31 @@ public class UserServiceImpl implements UserService {
             userPage = userRepository.searchFuzzyByUsername(keyword.trim(), pageable);
         }
 
-        List<UserResponse> content = userPage.getContent().stream()
-                .map(userMapper::toResponse)
+        List<UserSummaryResponse> content = userPage.getContent().stream()
+                .map(userMapper::toSummaryResponse)
                 .collect(Collectors.toList());
 
-        return PageResponse.<UserResponse>builder()
+        return PageResponse.<UserSummaryResponse>builder()
                 .page(page)
                 .size(size)
                 .totalElements(userPage.getTotalElements())
                 .totalPages(userPage.getTotalPages())
                 .items(content)
                 .build();
+    }
+
+    @Override
+    public UserSummaryResponse getUser(String username) {
+        User user = this.userRepository.findActiveByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User Not Found"));
+        User currentUser = this.currentUserProvider.getCurrentUser();
+        boolean followed = currentUser.getId() != null
+                && user.getId() != null
+                && !currentUser.getId().equals(user.getId())
+                && this.followRepository.findActiveByFollowerAndFollowing(currentUser.getId(), user.getId()).isPresent();
+        long followersCount = this.followRepository.countActiveFollowers(user.getId());
+        long followingCount = this.followRepository.countActiveFollowing(user.getId());
+
+        return this.userMapper.toSummaryResponse(user, followed, followersCount, followingCount);
     }
 
     private void evictUserDetailsAfterCommit(String username) {
