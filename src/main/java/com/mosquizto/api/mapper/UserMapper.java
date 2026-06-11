@@ -1,9 +1,6 @@
 package com.mosquizto.api.mapper;
 
-import com.mosquizto.api.dto.response.UserAchievementResponse;
-import com.mosquizto.api.dto.response.UserActivityResponse;
-import com.mosquizto.api.dto.response.UserResponse;
-import com.mosquizto.api.dto.response.UserStreakResponse;
+import com.mosquizto.api.dto.response.*;
 import com.mosquizto.api.model.Collection;
 import com.mosquizto.api.model.CollectionItem;
 import com.mosquizto.api.model.StudySession;
@@ -26,6 +23,27 @@ public class UserMapper {
                 .role(user.getRole() != null ? user.getRole().getName() : null)
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
+                .build();
+    }
+
+    public UserSummaryResponse toSummaryResponse(User user) {
+        return this.toSummaryResponse(user, false, 0, 0);
+    }
+
+    public UserSummaryResponse toSummaryResponse(User user, boolean followed) {
+        return this.toSummaryResponse(user, followed, 0, 0);
+    }
+
+    public UserSummaryResponse toSummaryResponse(User user,
+                                                 boolean followed,
+                                                 long followersCount,
+                                                 long followingCount) {
+        return UserSummaryResponse.builder()
+                .fullName(user.getFullName())
+                .username(user.getUsername())
+                .followed(followed)
+                .followersCount(followersCount)
+                .followingCount(followingCount)
                 .build();
     }
 
