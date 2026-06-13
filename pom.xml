@@ -134,6 +134,11 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>com.meilisearch.sdk</groupId>
 			<artifactId>meilisearch-java</artifactId>
 			<version>0.20.0</version> <!-- Use latest version -->

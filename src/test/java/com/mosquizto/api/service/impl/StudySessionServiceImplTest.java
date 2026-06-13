@@ -97,7 +97,7 @@ class StudySessionServiceImplTest {
         detail.setId(40L);
 
         when(this.currentUserProvider.getCurrentUsername()).thenReturn("alice");
-        when(this.studySessionRepository.findById(20L)).thenReturn(Optional.of(session));
+        when(this.studySessionRepository.findActiveById(20L)).thenReturn(Optional.of(session));
         when(this.studySessionDetailRepository.findAllActiveByStudySessionId(20L))
                 .thenReturn(List.of(detail));
 
