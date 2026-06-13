@@ -1,70 +1,72 @@
 package com.mosquizto.api.service.impl;
 
+import com.mosquizto.api.service.CollectionSearchService;
+import com.mosquizto.api.service.EmbeddingService;
+import com.mosquizto.api.service.VectorStoreService;
+import io.qdrant.client.QdrantClient;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.messaging.converter.StringMessageConverter;
-import org.springframework.messaging.simp.stomp.*;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.messaging.simp.stomp.StompHeaders;
+import org.springframework.messaging.simp.stomp.StompSession;
+import org.springframework.messaging.simp.stomp.StompSessionHandlerAdapter;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
-import org.springframework.web.socket.sockjs.client.SockJsClient;
-import org.springframework.web.socket.sockjs.client.Transport;
-import org.springframework.web.socket.sockjs.client.WebSocketTransport;
 
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-@ExtendWith(MockitoExtension.class)
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
-public class WebsocketTest {
+
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@ActiveProfiles("test")
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class WebsocketTest {
+
+    @MockBean
+    private CollectionSearchService collectionSearchService;
+
+    @MockBean
+    private EmbeddingService embeddingService;
+
+    @MockBean
+    private VectorStoreService vectorStoreService;
+
+    @MockBean
+    private QdrantClient qdrantClient;
+
+    @LocalServerPort
+    private int port;
+
+    @Value("${spring.websocket.connect-endpoint}")
+    private String connectEndpoint;
+
+    private StompSession session;
+
+    @AfterEach
+    void tearDown() {
+        if (this.session != null && this.session.isConnected()) {
+            this.session.disconnect();
+        }
+    }
 
     @Test
-    void writeSomeThing() throws Exception {
-        // 1. Phải bọc StandardWebSocketClient vào SockJsClient vì server dùng .withSockJS()
-        List<Transport> transports = new ArrayList<>(1);
-        transports.add(new WebSocketTransport(new StandardWebSocketClient()));
-        SockJsClient sockJsClient = new SockJsClient(transports);
-
-        WebSocketStompClient stompClient = new WebSocketStompClient(sockJsClient);
-        stompClient.setMessageConverter(new StringMessageConverter()); // Cấu hình gửi/nhận String
-
-        // Sửa lại URL cho chuẩn
-        String url = "ws://localhost:8080/ws-connection";
-
-        // Dùng cái này để chặn không cho hàm test kết thúc sớm
+    void shouldConnectToWebsocketEndpoint() throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
+        WebSocketStompClient stompClient = new WebSocketStompClient(new StandardWebSocketClient());
+        String url = "ws://localhost:" + this.port + this.connectEndpoint;
 
-        stompClient.connectAsync(url, new StompSessionHandlerAdapter() {
+        this.session = stompClient.connectAsync(url, new StompSessionHandlerAdapter() {
             @Override
             public void afterConnected(StompSession session, StompHeaders connectedHeaders) {
-                System.out.println("Session user 1 active: " + session.getSessionId());
-
-                // Sửa lại cho CHUẨN tên topic (/topic/invitation)
-                session.subscribe("/topic/invitation", new StompFrameHandler() {
-                    @Override
-                    public Type getPayloadType(StompHeaders headers) {
-                        return String.class;
-                    }
-
-                    @Override
-                    public void handleFrame(StompHeaders headers, Object payload) {
-                        System.out.println("Received from Server: " + payload);
-                        latch.countDown(); // Nhận được tin rồi thì nhả chốt cho test pass
-                    }
-                });
-
-                // Không gửi param lên URL, gửi qua Payload (tham số thứ 2)
-                session.send("/mosquizto/send", "Hello từ Client nè!");
+                latch.countDown();
             }
-        }).get();
+        }).get(5, TimeUnit.SECONDS);
 
-        // Đợi tối đa 5 giây cho tin nhắn gửi đi và nhận lại, nếu không nhận được test sẽ fail
-        boolean received = latch.await(5, TimeUnit.SECONDS);
-        if (!received) {
-            throw new RuntimeException("Test quá thời gian, không nhận được message!");
-        }
+        assertTrue(this.session.isConnected());
+        assertTrue(latch.await(5, TimeUnit.SECONDS));
     }
 }

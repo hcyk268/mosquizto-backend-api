@@ -3,6 +3,7 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.mapper.UserMapper;
 import com.mosquizto.api.model.Role;
 import com.mosquizto.api.model.User;
+import com.mosquizto.api.repository.FollowRepository;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
@@ -52,6 +53,9 @@ class UserServiceImplTest {
     private CacheManager cacheManager;
 
     @Mock
+    private FollowRepository followRepository;
+
+    @Mock
     private Cache userDetailsCache;
 
     private UserServiceImpl userService;
@@ -65,7 +69,8 @@ class UserServiceImplTest {
                 this.currentUserProvider,
                 this.userMapper,
                 this.redisTokenService,
-                this.cacheManager
+                this.cacheManager,
+                this.followRepository
         );
     }
 
