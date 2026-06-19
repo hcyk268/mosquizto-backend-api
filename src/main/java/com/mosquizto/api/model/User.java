@@ -45,6 +45,9 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
     @Column(name = "verify_code", length = 50)
     private String verifyCode;
 
+    @Column(name = "avatar_url", length = 512)
+    private String avatarUrl;
+
     @ManyToOne
     @JoinColumn(name = "role_id")
     private Role role;
@@ -121,6 +124,14 @@ public class User extends AbstractEntity<Long> implements UserDetails, Serializa
         if (fullName != null) {
             this.fullName = fullName;
         }
+    }
+
+    public void updateAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null || avatarUrl.isBlank()) {
+            throw new InvalidDataException("Avatar URL must not be blank");
+        }
+
+        this.avatarUrl = avatarUrl;
     }
 
     public void applyGoogleProfile(String fallbackFullName, Role defaultRole) {

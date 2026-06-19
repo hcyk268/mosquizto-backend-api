@@ -2,7 +2,9 @@ package com.mosquizto.api.service;
 
 import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.ChangePasswordRequest;
+import com.mosquizto.api.dto.request.UpdateAvatarRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
+import com.mosquizto.api.dto.response.AvatarResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
 import com.mosquizto.api.dto.response.UserSummaryResponse;
@@ -43,4 +45,8 @@ public interface UserService {
     public PageResponse<UserSummaryResponse> searchUsers(String keyword, int page, int size);
 
     UserSummaryResponse getUser(String username);
+
+    AvatarResponse getAvatar();
+
+    void updateAvatarUrl(UpdateAvatarRequest request);
 }

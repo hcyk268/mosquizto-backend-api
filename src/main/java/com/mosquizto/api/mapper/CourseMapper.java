@@ -56,6 +56,7 @@ public class CourseMapper {
                 .userId(user.getId())
                 .username(user.getUsername())
                 .fullName(user.getFullName())
+                .imgUri(user.getAvatarUrl())
                 .role(userCourse.getRole())
                 .status(userCourse.getAccessStatus())
                 .joinedAt(userCourse.getJoinedAt())

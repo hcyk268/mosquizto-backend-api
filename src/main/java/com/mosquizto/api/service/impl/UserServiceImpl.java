@@ -2,7 +2,9 @@ package com.mosquizto.api.service.impl;
 
 import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.ChangePasswordRequest;
+import com.mosquizto.api.dto.request.UpdateAvatarRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
+import com.mosquizto.api.dto.response.AvatarResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserResponse;
 import com.mosquizto.api.dto.response.UserSummaryResponse;
@@ -14,6 +16,7 @@ import com.mosquizto.api.repository.FollowRepository;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.MediaSignService;
 import com.mosquizto.api.service.RedisTokenService;
 import com.mosquizto.api.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +48,7 @@ public class UserServiceImpl implements UserService {
     private final RedisTokenService redisTokenService;
     private final CacheManager cacheManager;
     private final FollowRepository followRepository;
+    private final MediaSignService mediaSignService;
 
     @Override
     public User getByUsername(String username) {
@@ -232,6 +236,22 @@ public class UserServiceImpl implements UserService {
         long followingCount = this.followRepository.countActiveFollowing(user.getId());
 
         return this.userMapper.toSummaryResponse(user, followed, followersCount, followingCount);
+    }
+
+    @Override
+    public AvatarResponse getAvatar() {
+        User user = this.currentUserProvider.getCurrentUser();
+        return AvatarResponse.builder()
+                .imgUri(user.getAvatarUrl())
+                .build();
+    }
+
+    @Override
+    public void updateAvatarUrl(UpdateAvatarRequest request) {
+        User user = this.currentUserProvider.getCurrentUser();
+        this.mediaSignService.validateAvatarUrl(user.getId(), request.getAvatarUrl());
+        user.updateAvatarUrl(request.getAvatarUrl());
+        this.save(user);
     }
 
     private void evictUserDetailsAfterCommit(String username) {

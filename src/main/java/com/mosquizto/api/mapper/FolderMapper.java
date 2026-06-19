@@ -47,6 +47,7 @@ public class FolderMapper {
                 .userId(user != null ? user.getId() : null)
                 .username(user != null ? user.getUsername() : null)
                 .fullName(user != null ? user.getFullName() : null)
+                .imgUri(user != null ? user.getAvatarUrl() : null)
                 .role(membership.getRole())
                 .build();
     }

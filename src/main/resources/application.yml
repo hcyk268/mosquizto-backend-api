@@ -76,6 +76,10 @@ google:
 meilisearch:
   host: ${MEILI_SEARCH_HOST}
   masterKey: ${MEILI_MASTER_KEY}
+cloudinary:
+  name: ${CLOUDINARY_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
 
 endpoint:
   confirmUser: ${SERVER_URL}user/confirm

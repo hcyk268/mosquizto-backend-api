@@ -11,5 +11,6 @@ import java.io.Serializable;
 public class MemberResponse implements Serializable {
     private String username;
     private String fullname;
+    private String imgUri;
     private CollectionRole role;
 }

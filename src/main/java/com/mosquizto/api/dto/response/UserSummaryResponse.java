@@ -11,6 +11,7 @@ import java.io.Serializable;
 public class UserSummaryResponse implements Serializable {
     private String fullName;
     private String username;
+    private String imgUri;
     private boolean followed;
     private long followersCount;
     private long followingCount;

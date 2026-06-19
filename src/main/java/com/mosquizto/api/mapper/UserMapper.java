@@ -21,6 +21,7 @@ public class UserMapper {
                 .username(user.getUsername())
                 .status(user.getStatus())
                 .role(user.getRole() != null ? user.getRole().getName() : null)
+                .imgUri(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())
                 .build();
@@ -41,6 +42,7 @@ public class UserMapper {
         return UserSummaryResponse.builder()
                 .fullName(user.getFullName())
                 .username(user.getUsername())
+                .imgUri(user.getAvatarUrl())
                 .followed(followed)
                 .followersCount(followersCount)
                 .followingCount(followingCount)

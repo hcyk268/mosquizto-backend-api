@@ -257,6 +257,7 @@ public class FolderServiceImpl implements FolderService {
                 .userId(folder.getCreatedBy().getId())
                 .username(folder.getCreatedBy().getUsername())
                 .fullName(folder.getCreatedBy().getFullName())
+                .imgUri(folder.getCreatedBy().getAvatarUrl())
                 .role(FolderRole.OWNER)
                 .build());
 

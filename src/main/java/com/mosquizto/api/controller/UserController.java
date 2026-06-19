@@ -2,6 +2,7 @@ package com.mosquizto.api.controller;
 
 import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.ChangePasswordRequest;
+import com.mosquizto.api.dto.request.UpdateAvatarRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
 import com.mosquizto.api.dto.response.*;
 import com.mosquizto.api.service.FollowService;
@@ -86,6 +87,21 @@ public class UserController {
         return new ResponseData<>(HttpStatus.OK.value(), "Get profile success", profile);
     }
 
+    @Operation(summary = "Get avatar", description = "Return current user's avatar URL.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Avatar returned")
+    @GetMapping("/avatar")
+    public ResponseData<AvatarResponse> getAvatar() {
+        return new ResponseData<>(HttpStatus.OK.value(), "Get avatar success", this.userService.getAvatar());
+    }
+
+    @Operation(summary = "Update avatar", description = "Save Cloudinary avatar URL after signed upload.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Avatar updated")
+    @PatchMapping("/avatar")
+    public ResponseData<String> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
+        this.userService.updateAvatarUrl(request);
+        return new ResponseData<>(HttpStatus.OK.value(), "Update avatar success");
+    }
+
     @Operation(summary = "Get current user's study streak", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Study streak returned")
     @GetMapping("/streak")
@@ -132,7 +148,8 @@ public class UserController {
     @Operation(summary = "Search user", description = "search similarity username", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Search user")
     @GetMapping("/search")
-    public ResponseData<PageResponse<UserSummaryResponse>> searchUser(
+    public ResponseData<PageResponse<
+            UserSummaryResponse>> searchUser(
             @RequestParam String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size)

@@ -18,6 +18,8 @@ public class CourseMemberResponse implements Serializable {
 
     private String fullName;
 
+    private String imgUri;
+
     private CourseRole role;
 
     private AccessStatus status;

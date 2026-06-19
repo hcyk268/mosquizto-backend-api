@@ -21,6 +21,7 @@ public class UserCollectionMapper {
         return MemberResponse.builder()
                 .username(user != null ? user.getUsername() : null)
                 .fullname(user != null ? user.getFullName() : null)
+                .imgUri(user != null ? user.getAvatarUrl() : null)
                 .role(role)
                 .build();
     }

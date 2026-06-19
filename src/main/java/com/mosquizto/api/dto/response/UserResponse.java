@@ -17,6 +17,7 @@ public class UserResponse implements Serializable {
     private String username;
     private UserStatus status;
     private String role;
+    private String imgUri;
     private Date createdAt;
     private Date updatedAt;
 }

@@ -12,5 +12,6 @@ public class FolderMemberResponse implements Serializable {
     private Long userId;
     private String username;
     private String fullName;
+    private String imgUri;
     private FolderRole role;
 }
