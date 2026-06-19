@@ -7,6 +7,7 @@ import com.mosquizto.api.repository.FollowRepository;
 import com.mosquizto.api.repository.RoleRepository;
 import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
+import com.mosquizto.api.service.MediaSignService;
 import com.mosquizto.api.service.RedisTokenService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,6 +57,9 @@ class UserServiceImplTest {
     private FollowRepository followRepository;
 
     @Mock
+    private MediaSignService mediaSignService;
+
+    @Mock
     private Cache userDetailsCache;
 
     private UserServiceImpl userService;
@@ -70,7 +74,8 @@ class UserServiceImplTest {
                 this.userMapper,
                 this.redisTokenService,
                 this.cacheManager,
-                this.followRepository
+                this.followRepository,
+                this.mediaSignService
         );
     }
 
