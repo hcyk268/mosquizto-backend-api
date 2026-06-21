@@ -36,6 +36,7 @@ public class CollectionMapper {
                 .visibility(collection.getVisibility())
                 .userId(collection.getCreatedBy() != null ? collection.getCreatedBy().getId() : null)
                 .userName(collection.getCreatedBy() != null ? collection.getCreatedBy().getUsername() : null)
+                .authorImgUri(collection.getCreatedBy() != null ? collection.getCreatedBy().getAvatarUrl() : null)
                 .createdAt(collection.getCreatedAt())
                 .updatedAt(collection.getUpdatedAt())
                 .count(collection.getItemCount())

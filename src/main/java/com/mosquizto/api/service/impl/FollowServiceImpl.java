@@ -1,9 +1,12 @@
 package com.mosquizto.api.service.impl;
 
+import com.mosquizto.api.dto.response.FollowNotificationResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.UserSummaryResponse;
+import com.mosquizto.api.event.dto.UserFollowedEvent;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.UserMapper;
+import com.mosquizto.api.mapper.UserReportMapper;
 import com.mosquizto.api.model.Follow;
 import com.mosquizto.api.model.User;
 import com.mosquizto.api.repository.FollowRepository;
@@ -11,6 +14,7 @@ import com.mosquizto.api.repository.UserRepository;
 import com.mosquizto.api.service.CurrentUserProvider;
 import com.mosquizto.api.service.FollowService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -28,6 +32,8 @@ public class FollowServiceImpl implements FollowService {
     private final CurrentUserProvider currentUserProvider;
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final UserReportMapper userReportMapper;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -35,6 +41,10 @@ public class FollowServiceImpl implements FollowService {
         User currentUser = this.currentUserProvider.getCurrentUser();
         User targetUser = this.userRepository.findActiveByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+
+        boolean wasAlreadyActive = this.followRepository
+                .findActiveByFollowerAndFollowing(currentUser.getId(), targetUser.getId())
+                .isPresent();
 
         Follow follow = this.followRepository.findByFollowerAndFollowing(currentUser.getId(), targetUser.getId())
                 .map(existingFollow -> {
@@ -45,7 +55,15 @@ public class FollowServiceImpl implements FollowService {
                 })
                 .orElseGet(() -> Follow.create(currentUser, targetUser));
 
-        this.followRepository.save(follow);
+        follow = this.followRepository.save(follow);
+
+        if (!wasAlreadyActive) {
+            this.eventPublisher.publishEvent(new UserFollowedEvent(
+                    follow.getId(),
+                    targetUser.getUsername(),
+                    UserReportMapper.displayName(currentUser)
+            ));
+        }
     }
 
     @Override
@@ -99,6 +117,16 @@ public class FollowServiceImpl implements FollowService {
                 .toList();
 
         return this.toPageResponse(following, page, size, items);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FollowNotificationResponse> getFollowNotifications() {
+        User currentUser = this.currentUserProvider.getCurrentUser();
+
+        return this.followRepository.findActiveFollowsReceivedBy(currentUser.getId()).stream()
+                .map(this.userReportMapper::toFollowNotificationResponse)
+                .toList();
     }
 
     private PageResponse<UserSummaryResponse> toPageResponse(Page<User> userPage,

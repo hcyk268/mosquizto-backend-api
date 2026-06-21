@@ -78,4 +78,13 @@ public interface FollowRepository extends JpaRepository<Follow, Long> {
             "AND fl.deletedAt IS NULL")
     List<Long> findActiveFollowingIds(@Param("followerId") Long followerId,
                                       @Param("followingIds") List<Long> followingIds);
+
+    @Query("SELECT fl FROM Follow fl " +
+            "JOIN FETCH fl.follower " +
+            "WHERE fl.following.id = :userId " +
+            "AND fl.follower.deletedAt IS NULL " +
+            "AND fl.following.deletedAt IS NULL " +
+            "AND fl.deletedAt IS NULL " +
+            "ORDER BY fl.createdAt DESC")
+    List<Follow> findActiveFollowsReceivedBy(@Param("userId") Long userId);
 }

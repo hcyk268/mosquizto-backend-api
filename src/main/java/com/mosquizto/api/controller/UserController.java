@@ -209,6 +209,16 @@ public class UserController {
         return new ResponseData<>(HttpStatus.OK.value(), "Successfully");
     }
 
+    @Operation(summary = "Get follow notifications",
+            description = "Return users who recently followed the current user.",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponse(responseCode = "200", description = "Follow notifications returned")
+    @GetMapping("/follow/notifications")
+    public ResponseData<List<FollowNotificationResponse>> getFollowNotifications() {
+        return new ResponseData<>(HttpStatus.OK.value(), "Success",
+                this.followService.getFollowNotifications());
+    }
+
     @Operation(summary = "Unfollow user",
             description = "Unfollow the user identified by username.",
             security = @SecurityRequirement(name = "bearerAuth"))
