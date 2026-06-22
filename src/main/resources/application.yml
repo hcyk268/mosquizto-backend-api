@@ -47,8 +47,8 @@ spring:
 
   data:
     redis:
-      host: ${SPRING_REDIS_HOST:localhost}
-      port: 6379
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
   cache:
     type: redis
@@ -60,8 +60,8 @@ open-api:
   service:
     title: Api Service
     version: v1.0
-    server-url: ${SERVER_URL}
-    server-name: localhost
+    server-url: ${SERVER_URL:http://localhost:8080/}
+    server-name: ${SERVER_NAME:localhost}
 
 jwt:
   expiryHour: 1
@@ -87,5 +87,5 @@ endpoint:
 app:
   mail:
     provider: ${APP_MAIL_PROVIDER:smtp}
-    from: no-reply@cskh-group.com
-    from-name: Mosquizto Support
+    from: ${MAIL_FROM:no-reply@cskh-group.com}
+    from-name: ${MAIL_NAME:Mosquizto Support}

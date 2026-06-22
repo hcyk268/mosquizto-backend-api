@@ -181,12 +181,6 @@
 			<artifactId>spring-boot-starter-websocket</artifactId>
 		</dependency>
 
-		<!-- Spring Boot Thymeleaf Dependency -->
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-
 		<!-- (Optional) Spring Messaging for STOMP if you are using higher-level messaging patterns -->
 		<dependency>
 			<groupId>org.springframework</groupId>
