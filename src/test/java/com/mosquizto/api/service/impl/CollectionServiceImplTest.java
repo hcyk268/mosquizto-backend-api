@@ -15,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -78,26 +79,56 @@ class CollectionServiceImplTest {
     }
 
     @Test
-    void shouldSoftDeleteCollectionAndDeleteSearchDocumentAfterCommit() {
+    void shouldSoftDeleteCollectionAndAllMembershipsAfterCommitWhenOwnerDeletes() {
         User user = new User();
         user.setId(1L);
         Collection collection = Collection.initialize(user, "Java", "Backend", true);
         collection.setId(7);
+        UserCollection ownerMembership = UserCollection.createOwner(user, collection);
         when(this.currentUserProvider.getCurrentUser()).thenReturn(user);
         when(this.collectionRepository.findActiveById(7)).thenReturn(Optional.of(collection));
+        when(this.userCollectionRepository.findAllMembershipsByCollectionId(7))
+                .thenReturn(List.of(ownerMembership));
         TransactionSynchronizationManager.setActualTransactionActive(true);
         TransactionSynchronizationManager.initSynchronization();
 
         this.collectionService.deleteCollection(7);
 
-        verify(this.membershipResolver).requireCanDelete(collection, user);
         assertNotNull(collection.getDeletedAt());
         assertSame(user, collection.getDeletedBy());
+        assertNotNull(ownerMembership.getDeletedAt());
+        verify(this.collectionRepository).save(collection);
+        verify(this.userCollectionRepository).save(ownerMembership);
         verify(this.collectionSearchService, never()).delete(7);
 
         TransactionSynchronizationManager.getSynchronizations()
                 .forEach(TransactionSynchronization::afterCommit);
 
         verify(this.collectionSearchService).delete(7);
+    }
+
+    @Test
+    void shouldOnlySoftDeleteMembershipWhenNonOwnerLeavesCollection() {
+        User owner = new User();
+        owner.setId(1L);
+        User member = new User();
+        member.setId(2L);
+        Collection collection = Collection.initialize(owner, "Java", "Backend", true);
+        collection.setId(7);
+        UserCollection membership = UserCollection.createShareInvite(member, collection, com.mosquizto.api.util.CollectionRole.VIEWER, owner);
+        membership.approve();
+
+        when(this.currentUserProvider.getCurrentUser()).thenReturn(member);
+        when(this.collectionRepository.findActiveById(7)).thenReturn(Optional.of(collection));
+        when(this.membershipResolver.getMembership(2L, 7)).thenReturn(membership);
+
+        this.collectionService.deleteCollection(7);
+
+        assertNotNull(membership.getDeletedAt());
+        assertSame(member, membership.getDeletedBy());
+        verify(this.userCollectionRepository).save(membership);
+        verify(this.collectionRepository, never()).save(collection);
+        verify(this.collectionSearchService, never()).delete(7);
+        verify(this.vectorStoreService, never()).deleteCollection(7);
     }
 }

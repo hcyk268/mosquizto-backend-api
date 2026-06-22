@@ -52,7 +52,9 @@ public class CollectionController {
         return new ResponseData<>(HttpStatus.OK.value(), "Update success");
     }
 
-    @Operation(summary = "Delete collection", security = @SecurityRequirement(name = "bearerAuth"))
+    @Operation(summary = "Delete or leave collection",
+            description = "Owner soft-deletes the collection and all memberships. Non-owner members only remove their own user_collection link.",
+            security = @SecurityRequirement(name = "bearerAuth"))
     @DeleteMapping("/{id}")
     public ResponseData<Void> delete(@PathVariable Integer id) {
         collectionService.deleteCollection(id);

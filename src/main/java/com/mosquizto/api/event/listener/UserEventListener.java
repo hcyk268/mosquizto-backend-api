@@ -47,7 +47,7 @@ public class UserEventListener {
                 recipient,
                 NotificationType.USER_REPORTED,
                 NotificationWriter.userReported(),
-                event.reportId()
+                event.reporterId()
         );
     }
 }

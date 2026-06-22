@@ -48,7 +48,7 @@ public class CollectionEventListener {
                     recipient,
                     NotificationType.COLLECTION_REPORTED,
                     NotificationWriter.reportCollection(event.collectionTitle(), event.reporterName()),
-                    event.reportId()
+                    event.reporterId()
             );
         }
     }
