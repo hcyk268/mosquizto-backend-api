@@ -26,12 +26,13 @@ Copy-Item .env.example .env
 Cap nhat file `.env` vua tao voi cac nhom bien sau:
 
 - `DB_NAME`, `DB_USER`, `DB_PASSWORD`: thong tin PostgreSQL.
+- `REDIS_HOST`, `REDIS_PORT`: dia chi Redis (`redis:6379` khi chay Docker Compose, `localhost:6379` khi chay app truc tiep).
 - `APP_MAIL_PROVIDER`: chon `smtp` hoac `sendgrid`.
 - `MAIL_ADDRESS`, `MAIL_USERNAME`, `MAIL_PASSWORD`: thong tin SMTP. Nen dung Gmail App Password neu gui qua Gmail.
 - `SEND_GRID`: bat buoc khi `APP_MAIL_PROVIDER=sendgrid`.
-- `JWT_ACCESS_KEY`, `JWT_REFRESH_KEY`, `JWT_RESET_KEY`: khoa JWT. Co the tao bang `openssl rand -base64 32`.
+- `JWT_ACCESS_KEY`, `JWT_REFRESH_KEY`, `JWT_RESET_KEY`: ba khoa JWT rieng biet. Tao tung khoa bang `openssl rand -base64 48`.
 - `GOOGLE_CLIENT_ID`: client id cho dang nhap Google.
-- `MEILI_MASTER_KEY`: khoa cho Meilisearch container.
+- `MEILI_MASTER_KEY`: khoa manh cho Meilisearch container. Co the tao bang `openssl rand -base64 48`.
 - `VPS_IP`: host cong khai duoc dung de tao `SERVER_URL`, de `localhost` khi chay local.
 - `WS_MESSAGE_TIME_OUT`, `WS_CONNECT_ENDPOINT`: cau hinh WebSocket.
 
@@ -39,7 +40,7 @@ Luu y:
 
 - `docker-compose.yml` tu map cac bien trong `.env` sang cac bien Spring nhu `SPRING_DATASOURCE_URL`, `SPRING_MAIL_USERNAME`, `SERVER_URL`.
 - Project hien tai khong tu dong nap file `.env` khi chay bang `mvn spring-boot:run` hoac tu IDE.
-- Neu chay app truc tiep khong qua Docker Compose, ban can export thu cong cac bien Spring sau: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_MAIL_ADDRESS`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `SPRING_REDIS_HOST`, `SERVER_URL`, `MEILI_SEARCH_HOST`, `MEILI_MASTER_KEY`, cung voi cac bien JWT, Google va WebSocket.
+- Neu chay app truc tiep khong qua Docker Compose, ban can export thu cong cac bien sau: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `SPRING_MAIL_ADDRESS`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD`, `REDIS_HOST`, `REDIS_PORT`, `SERVER_URL`, `MEILI_SEARCH_HOST`, `MEILI_MASTER_KEY`, cung voi cac bien JWT, Google va WebSocket.
 
 ### 3. Khoi dong bang Docker Compose
 

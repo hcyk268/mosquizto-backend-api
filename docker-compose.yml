@@ -42,18 +42,22 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${DB_NAME}?options=-c%20timezone=Asia/Ho_Chi_Minh
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
-      SPRING_REDIS_HOST: redis
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
       SPRING_MAIL_ADDRESS: ${MAIL_ADDRESS}
       SPRING_MAIL_USERNAME: ${MAIL_USERNAME}
       SPRING_MAIL_PASSWORD: ${MAIL_PASSWORD}
       APP_MAIL_PROVIDER: ${APP_MAIL_PROVIDER:-smtp}
       SEND_GRID: ${SEND_GRID:-}
+      MAIL_FROM: ${MAIL_FROM}
+      MAIL_NAME: ${MAIL_NAME}
       JWT_ACCESS_KEY: ${JWT_ACCESS_KEY}
       JWT_REFRESH_KEY: ${JWT_REFRESH_KEY}
       JWT_RESET_KEY: ${JWT_RESET_KEY}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      SERVER_URL: http://${VPS_IP:-localhost}:8080/
-      MEILI_SEARCH_HOST: http://meilisearch:7700
+      SERVER_URL: http://${VPS_IP}:8080/
+      SERVER_NAME: ${SERVER_NAME}
+      MEILI_SEARCH_HOST: ${MEILI_SEARCH_HOST}
       MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
       QDRANT_HOST: qdrant
       QDRANT_PORT: 6334
@@ -68,7 +72,7 @@ services:
       redis:
         condition: service_healthy
       meilisearch:
-        condition: service_started
+        condition: service_healthy
     restart: unless-stopped
 
   meilisearch:
