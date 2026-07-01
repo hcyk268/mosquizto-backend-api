@@ -1,6 +1,6 @@
 package com.mosquizto.api.event.dto;
 
 public record UserReportEvent(
-        Long reportId,
+        Long reporterId,
         String targetUsername
 ) {}

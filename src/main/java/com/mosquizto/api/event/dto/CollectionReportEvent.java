@@ -1,12 +1,13 @@
 package com.mosquizto.api.event.dto;
 
 public record CollectionReportEvent (
-        Long reportId ,
-        String targetUsername ,
+        Long reportId,
+        Long reporterId,
+        String targetUsername,
         String targetMail,
-        String reporterName ,
+        String reporterName,
         String reporterMail,
         String collectionTitle,
-        String reason ,
+        String reason,
         String description
-){}
+) {}

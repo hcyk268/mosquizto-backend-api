@@ -65,8 +65,16 @@ public class CollectionReportServiceImpl implements CollectionReportService {
 //        mailService.sendCollectionReportNotification(targetUser.getEmail(),recipientName,reporter.getEmail(),
 //                collection.getTitle(),request.getReason(), request.getDescription());
 //
-         eventPublisher.publishEvent(new CollectionReportEvent(report.getId(),recipientName, targetUser.getEmail(),
-                 reporter.getUsername(), reporter.getEmail(), collection.getTitle(), reason,description));
+         eventPublisher.publishEvent(new CollectionReportEvent(
+                 report.getId(),
+                 reporter.getId(),
+                 recipientName,
+                 targetUser.getEmail(),
+                 reporter.getUsername(),
+                 reporter.getEmail(),
+                 collection.getTitle(),
+                 reason,
+                 description));
         return this.collectionMapper.toResponse(this.collectionReportRepository.save(report));
     }
 

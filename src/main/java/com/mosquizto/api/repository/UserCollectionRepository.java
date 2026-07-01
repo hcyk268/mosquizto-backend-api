@@ -116,4 +116,11 @@ public interface UserCollectionRepository extends JpaRepository<UserCollection, 
     Optional<CollectionRole> getCollectionRole(
             @Param("collectionId") Integer collectionId,
             @Param("userId") Long userId);
+
+    @Query("select uc from UserCollection uc " +
+            "where uc.collection.id = :collectionId " +
+            "and uc.deletedAt is null " +
+            "and uc.user.deletedAt is null " +
+            "and uc.collection.deletedAt is null")
+    List<UserCollection> findAllMembershipsByCollectionId(@Param("collectionId") Integer collectionId);
 }

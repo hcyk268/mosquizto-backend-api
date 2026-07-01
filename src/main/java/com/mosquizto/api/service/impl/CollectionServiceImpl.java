@@ -3,6 +3,7 @@ package com.mosquizto.api.service.impl;
 import com.mosquizto.api.dto.request.CollectionRequest;
 import com.mosquizto.api.dto.response.CollectionResponse;
 import com.mosquizto.api.dto.response.PageResponse;
+import com.mosquizto.api.exception.AccessDeniedException;
 import com.mosquizto.api.exception.ResourceNotFoundException;
 import com.mosquizto.api.mapper.CollectionMapper;
 import com.mosquizto.api.model.Collection;
@@ -115,18 +116,41 @@ public class CollectionServiceImpl implements CollectionService {
     @Override
     @Transactional
     public void deleteCollection(Integer id) {
-        User user = currentUserProvider.getCurrentUser();
+        User user = this.currentUserProvider.getCurrentUser();
         Collection collection = this.collectionRepository.findActiveById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Collection not found"));
 
-        membershipResolver.requireCanDelete(collection, user);
+        if (collection.isOwnedBy(user)) {
+            this.deleteCollectionAsOwner(collection, user);
+            return;
+        }
+
+        this.leaveCollectionAsMember(collection, user);
+    }
+
+    private void deleteCollectionAsOwner(Collection collection, User user) {
+        this.userCollectionRepository.findAllMembershipsByCollectionId(collection.getId())
+                .forEach(membership -> {
+                    membership.delete(user);
+                    this.userCollectionRepository.save(membership);
+                });
 
         collection.delete(user);
-        this.runAfterCommit(() ->
-        {
-            this.collectionSearchService.delete(id);
-            this.vectorStoreService.deleteCollection(id);
+        this.collectionRepository.save(collection);
+        this.runAfterCommit(() -> {
+            this.collectionSearchService.delete(collection.getId());
+            this.vectorStoreService.deleteCollection(collection.getId());
         });
+    }
+
+    private void leaveCollectionAsMember(Collection collection, User user) {
+        UserCollection membership = this.membershipResolver.getMembership(user.getId(), collection.getId());
+        if (membership == null) {
+            throw new AccessDeniedException("You are not a member of this collection");
+        }
+
+        membership.delete(user);
+        this.userCollectionRepository.save(membership);
     }
 
     @Override

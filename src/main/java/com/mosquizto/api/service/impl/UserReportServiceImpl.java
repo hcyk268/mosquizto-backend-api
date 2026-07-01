@@ -54,7 +54,7 @@ public class UserReportServiceImpl implements UserReportService {
         report = this.userReportRepository.save(report);
 
         this.eventPublisher.publishEvent(new UserReportEvent(
-                report.getId(),
+                reporter.getId(),
                 reportedUser.getUsername()
         ));
 
