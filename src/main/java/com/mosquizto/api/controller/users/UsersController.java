@@ -1,6 +1,5 @@
-package com.mosquizto.api.controller;
+package com.mosquizto.api.controller.users;
 
-import com.mosquizto.api.dto.request.AddUserRequest;
 import com.mosquizto.api.dto.request.ChangePasswordRequest;
 import com.mosquizto.api.dto.request.UpdateAvatarRequest;
 import com.mosquizto.api.dto.request.UpdateUserRequest;
@@ -15,11 +14,8 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.repository.query.Param;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,22 +24,13 @@ import java.util.List;
 @Validated
 @RequiredArgsConstructor
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 @Tag(name = "User", description = "User admin and profile APIs")
-public class UserController {
+public class UsersController {
 
     private final UserService userService;
     private final UserEngagementService userEngagementService;
     private final FollowService followService;
-
-    @Operation(summary = "Add user", description = "Admin creates a user account.", security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponse(responseCode = "200", description = "User created")
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/add")
-    public ResponseData<Long> addUser(@Valid @RequestBody AddUserRequest request) {
-        long userId = this.userService.addUser(request);
-        return new ResponseData<>(HttpStatus.OK.value(), "Add user success", userId);
-    }
 
     @Operation(summary = "Confirm user", description = "Activate account using email verify code.", security = {})
     @ApiResponse(responseCode = "200", description = "User confirmed")
@@ -57,22 +44,9 @@ public class UserController {
         return new ResponseData<>(HttpStatus.OK.value(), "User confirmed successfully");
     }
 
-    @Operation(summary = "List users", description = "Admin paginated user list.", security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponse(responseCode = "200", description = "Users returned")
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/list")
-    public ResponseData<PageResponse<UserResponse>> getListUser(
-            @Parameter(description = "Page number", example = "1")
-            @RequestParam(defaultValue = "1", required = false) @Min(value = 1, message = "Page must be greater than 0") int page,
-            @Parameter(description = "Page size", example = "20")
-            @RequestParam(defaultValue = "20", required = false) @Min(value = 10, message = "Size must be greater than 10") int size) {
-        PageResponse<UserResponse> result = this.userService.getListUser(page, size);
-        return new ResponseData<>(HttpStatus.OK.value(), "Get user list success", result);
-    }
-
     @Operation(summary = "Change password", description = "Change current user's password.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "204", description = "Password changed")
-    @PatchMapping("/change-password")
+    @PatchMapping("/me/password")
     public ResponseData<String> changePassword(
             @Valid @RequestBody ChangePasswordRequest changePasswordRequest) {
         this.userService.changePassword(changePasswordRequest);
@@ -81,7 +55,7 @@ public class UserController {
 
     @Operation(summary = "Get profile", description = "Return current user profile.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Profile returned")
-    @GetMapping("/profile")
+    @GetMapping("/me")
     public ResponseData<UserResponse> getProfile() {
         UserResponse profile = this.userService.getProfile();
         return new ResponseData<>(HttpStatus.OK.value(), "Get profile success", profile);
@@ -89,14 +63,14 @@ public class UserController {
 
     @Operation(summary = "Get avatar", description = "Return current user's avatar URL.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Avatar returned")
-    @GetMapping("/avatar")
+    @GetMapping("/me/avatar")
     public ResponseData<AvatarResponse> getAvatar() {
         return new ResponseData<>(HttpStatus.OK.value(), "Get avatar success", this.userService.getAvatar());
     }
 
     @Operation(summary = "Update avatar", description = "Save Cloudinary avatar URL after signed upload.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Avatar updated")
-    @PatchMapping("/avatar")
+    @PatchMapping("/me/avatar")
     public ResponseData<String> updateAvatar(@Valid @RequestBody UpdateAvatarRequest request) {
         this.userService.updateAvatarUrl(request);
         return new ResponseData<>(HttpStatus.OK.value(), "Update avatar success");
@@ -104,7 +78,7 @@ public class UserController {
 
     @Operation(summary = "Get current user's study streak", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Study streak returned")
-    @GetMapping("/streak")
+    @GetMapping("/me/streak")
     public ResponseData<UserStreakResponse> getStreak() {
         return new ResponseData<>(HttpStatus.OK.value(), "Get user streak success",
                 this.userEngagementService.getStreak());
@@ -112,7 +86,7 @@ public class UserController {
 
     @Operation(summary = "Get current user's achievements", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Achievements returned")
-    @GetMapping("/achievements")
+    @GetMapping("/me/achievements")
     public ResponseData<List<UserAchievementResponse>> getAchievements() {
         return new ResponseData<>(HttpStatus.OK.value(), "Get user achievements success",
                 this.userEngagementService.getAchievements());
@@ -120,7 +94,7 @@ public class UserController {
 
     @Operation(summary = "Get current user's activity timeline", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Activity timeline returned")
-    @GetMapping("/activity")
+    @GetMapping("/me/activity")
     public ResponseData<PageResponse<UserActivityResponse>> getActivity(
             @RequestParam(defaultValue = "1", required = false) @Min(value = 1, message = "Page must be greater than 0") int page,
             @RequestParam(defaultValue = "20", required = false) @Min(value = 1, message = "Size must be greater than 0") int size) {
@@ -130,24 +104,16 @@ public class UserController {
 
     @Operation(summary = "Update profile", description = "Update current user profile.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Profile updated")
-    @PatchMapping("/update")
+    @PatchMapping("/me")
     public ResponseData<String> updateUser(
             @Valid @RequestBody UpdateUserRequest updateUserRequest) {
         this.userService.updateUser(updateUserRequest);
         return new ResponseData<>(HttpStatus.OK.value(), "Update user success");
     }
 
-    @Operation(summary = "Delete user", description = "Delete current user or admin delete", security = @SecurityRequirement(name = "bearerAuth"))
-    @ApiResponse(responseCode = "200", description = "Delete user")
-    @DeleteMapping("/delete/{userId}")
-    public ResponseData<Void> deleteUser(@Valid @Positive @PathVariable Long userId) {
-        this.userService.deleteUser(userId);
-        return new ResponseData<>(HttpStatus.OK.value(), "Delete user successfully");
-    }
-
     @Operation(summary = "Search user", description = "search similarity username", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Search user")
-    @GetMapping("/search")
+    @GetMapping(params = "keyword")
     public ResponseData<PageResponse<
             UserSummaryResponse>> searchUser(
             @RequestParam String keyword,
@@ -162,7 +128,7 @@ public class UserController {
             description = "Return public profile summary and whether the current user follows this profile.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "User profile returned")
-    @GetMapping("/profile/{username}")
+    @GetMapping("/{username}")
     public ResponseData<UserSummaryResponse> getUser(
             @Parameter(description = "Username", example = "teacher_lan_ielts", required = true)
             @PathVariable String username) {
@@ -173,7 +139,7 @@ public class UserController {
             description = "Return a paginated list of users who follow the current user.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Followers returned")
-    @GetMapping("/followers")
+    @GetMapping("/me/followers")
     public ResponseData<PageResponse<UserSummaryResponse>> getFollowers(
             @RequestParam(defaultValue = "1", required = false)
             @Min(value = 1, message = "Page must be greater than 0") int page,
@@ -187,7 +153,7 @@ public class UserController {
             description = "Return a paginated list of users followed by the current user.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Following users returned")
-    @GetMapping("/following")
+    @GetMapping("/me/following")
     public ResponseData<PageResponse<UserSummaryResponse>> getFollowing(
             @RequestParam(defaultValue = "1", required = false)
             @Min(value = 1, message = "Page must be greater than 0") int page,
@@ -201,7 +167,7 @@ public class UserController {
             description = "Follow the user identified by username.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "User followed")
-    @PostMapping("/follow/{username}")
+    @PostMapping("/{username}/follow")
     public ResponseData<Void> follow(
             @Parameter(description = "Username to follow", example = "teacher_lan_ielts", required = true)
             @PathVariable String username) {
@@ -213,7 +179,7 @@ public class UserController {
             description = "Return users who recently followed the current user.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Follow notifications returned")
-    @GetMapping("/follow/notifications")
+    @GetMapping("/me/follow-notifications")
     public ResponseData<List<FollowNotificationResponse>> getFollowNotifications() {
         return new ResponseData<>(HttpStatus.OK.value(), "Success",
                 this.followService.getFollowNotifications());
@@ -223,7 +189,7 @@ public class UserController {
             description = "Unfollow the user identified by username.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "User unfollowed")
-    @DeleteMapping("/follow/{username}")
+    @DeleteMapping("/{username}/follow")
     public ResponseData<Void> unfollow(
             @Parameter(description = "Username to unfollow", example = "teacher_lan_ielts", required = true)
             @PathVariable String username) {

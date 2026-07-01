@@ -82,7 +82,7 @@ cloudinary:
   api-secret: ${CLOUDINARY_API_SECRET}
 
 endpoint:
-  confirmUser: ${SERVER_URL}user/confirm
+  confirmUser: ${SERVER_URL}users/confirm
 
 app:
   mail:

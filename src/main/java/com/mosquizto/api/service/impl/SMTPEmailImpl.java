@@ -74,7 +74,7 @@ public class SMTPEmailImpl implements MailService {
                     StandardCharsets.UTF_8.name());
             Context context = new Context();
 
-            // http://localhost:80/user/confirm/{userId}?verifyCode={verifyCode}
+            // http://localhost:80/users/confirm/{userId}?verifyCode={verifyCode}
             String linkConfirm = String.format("%s/%s?verifyCode=%s", endpointConfirmUser, userId, verifyCode);
 
             Map<String, Object> properties = new HashMap<>();

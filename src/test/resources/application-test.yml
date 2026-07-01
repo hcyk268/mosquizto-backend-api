@@ -39,4 +39,4 @@ meilisearch:
   masterKey: test-master-key
 
 endpoint:
-  confirmUser: http://localhost:8080/user/confirm
+  confirmUser: http://localhost:8080/users/confirm

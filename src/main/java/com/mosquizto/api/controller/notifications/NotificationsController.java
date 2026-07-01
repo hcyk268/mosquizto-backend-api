@@ -1,18 +1,17 @@
-package com.mosquizto.api.controller;
+package com.mosquizto.api.controller.notifications;
+
 import com.mosquizto.api.dto.response.NotificationResponse;
 import com.mosquizto.api.dto.response.PageResponse;
 import com.mosquizto.api.dto.response.ResponseData;
 import com.mosquizto.api.service.NotificationService;
 import lombok.RequiredArgsConstructor;
-import org.apache.http.protocol.HTTP;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/notifications")
 @RequiredArgsConstructor
-public class NotificationController {
+public class NotificationsController {
 
     private final NotificationService notificationService;
 

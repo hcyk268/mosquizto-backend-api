@@ -285,83 +285,87 @@ Các endpoint không có prefix `/api`; route bắt đầu trực tiếp từ ro
 
 - `/auth/register`
 - `/auth/login`
-- `/auth/refresh-token`
+- `/auth/token/refresh`
 - `/auth/logout`
 - `/auth/forgot-password`
-- `/auth/verify-code-forgot-password`
+- `/auth/password/verify-code`
 - `/auth/reset-password`
 - `/auth/google`
 
 ### 10.2. Người dùng
 
-- `/user/profile`
-- `/user/update`
-- `/user/change-password`
-- `/user/avatar`
-- `/user/search`
-- `/user/profile/{username}`
-- `/user/follow/{username}`
-- `/user/followers`
-- `/user/following`
-- `/user/follow/notifications`
+- `/users/me`
+- `/users/me/avatar`
+- `/users/me/password`
+- `/users?keyword=...`
+- `/users/{username}`
+- `/users/{username}/follow`
+- `/users/me/followers`
+- `/users/me/following`
+- `/users/me/follow-notifications`
+- `/users/me/streak`
+- `/users/me/achievements`
+- `/users/me/activity`
 
 ### 10.3. Collection và item
 
-- `/collection`
-- `/collection/my-list`
-- `/collection/public`
-- `/collection/search`
-- `/collection/recent-opened`
-- `/collection/create_index`
-- `/collection/item`
-- `/collection/item/{id}/star`
-- `/collection/item/starred`
+- `/collections`
+- `/users/me/collections`
+- `/collections?visibility=public`
+- `/collections/search`
+- `/users/me/recent-collections`
+- `/internal/collections/search-index/rebuild`
+- `/collections/{collectionId}/items`
+- `/collection-items/{id}/star`
+- `/users/me/starred-collection-items`
 
 ### 10.4. Chia sẻ collection
 
-- `/user-collection/share/{collectionId}`
-- `/user-collection/join/{collectionId}`
-- `/user-collection/members/{collectionId}`
-- `/user-collection/invitations`
+- `/collections/{collectionId}/shares`
+- `/collections/{collectionId}/join-requests`
+- `/collections/{collectionId}/members`
+- `/users/me/collection-invitations`
+- `/collections/{collectionId}/invitations/me`
 
 ### 10.5. Folder
 
-- `/folder/create`
-- `/folder/{folderId}`
-- `/folder/{folderId}/collection/{collectionId}`
-- `/folder/{folderId}/share`
-- `/folder/{folderId}/members`
+- `/folders`
+- `/users/me/folders`
+- `/folders/{folderId}`
+- `/folders/{folderId}/collections/{collectionId}`
+- `/folders/{folderId}/shares`
+- `/folders/{folderId}/members`
 
 ### 10.6. Course
 
-- `/course`
-- `/course/{courseId}`
-- `/course/public`
-- `/course/{courseId}/collection/{collectionId}`
-- `/course/{courseId}/join`
-- `/course/{courseId}/join-requests/pending`
-- `/course/{courseId}/members`
-- `/course/{courseId}/stats/best-collections-learnt`
+- `/courses`
+- `/users/me/courses`
+- `/courses/{courseId}`
+- `/courses?visibility=public`
+- `/courses/{courseId}/collections/{collectionId}`
+- `/courses/{courseId}/join-requests`
+- `/courses/{courseId}/members`
+- `/courses/{courseId}/stats/best-learned-collections`
 
 ### 10.7. Study session
 
-- `/study-session/start`
-- `/study-session/{sessionId}/answer`
-- `/study-session/{sessionId}/complete`
-- `/study-session/{sessionId}/complete-batch`
-- `/study-session/history`
-- `/study-session/stats/{collectionId}`
-- `/study-session/get-jump-back-in`
+- `/study-sessions`
+- `/study-sessions/{sessionId}/answers`
+- `/study-sessions/{sessionId}/complete`
+- `/study-sessions/{sessionId}/answers/batch`
+- `/users/me/study-sessions`
+- `/collections/{collectionId}/study-stats/me`
+- `/users/me/study-sessions/resumable`
 
 ### 10.8. Notification, report, media, recommendation
 
 - `/notifications`
 - `/notifications/unread-count`
-- `/reports/collections/{collectionId}`
-- `/reports/users/{username}`
-- `/media/cloudinary/sign`
-- `/recommendation/collections`
-- `/recommendation/sync/collections`
+- `/collections/{collectionId}/reports`
+- `/users/{username}/reports`
+- `/media/cloudinary/signatures`
+- `/recommendations/collections`
+- `/internal/recommendations/collections/sync`
 
 Chi tiết request/response và security requirement nên xem trực tiếp trên Swagger UI.
 
@@ -461,7 +465,7 @@ Kiểm tra:
 
 Nếu cần đồng bộ lại dữ liệu recommendation:
 
-- Gọi endpoint `POST /recommendation/sync/collections`
+- Gọi endpoint `POST /internal/recommendations/collections/sync`
 
 ## 15. Lệnh hữu ích
 

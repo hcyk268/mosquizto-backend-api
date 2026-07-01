@@ -1,4 +1,4 @@
-package com.mosquizto.api.controller;
+package com.mosquizto.api.controller.media;
 
 import com.mosquizto.api.dto.response.MediaSignResponse;
 import com.mosquizto.api.dto.response.ResponseData;
@@ -12,16 +12,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/media/cloudinary")
 @RequiredArgsConstructor
 @Tag(name = "Media", description = "Signed media upload APIs")
-public class MediaController {
+public class MediaUploadsController {
 
     private final MediaSignService mediaSignService;
     private final CurrentUserProvider currentUserProvider;
@@ -31,7 +29,7 @@ public class MediaController {
             description = "Returns Cloudinary signed upload parameters for the current user.",
             security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Signed upload params returned")
-    @GetMapping("/sign")
+    @PostMapping("/media/cloudinary/signatures")
     public ResponseData<MediaSignResponse> sign(
             @Parameter(description = "Upload folder", example = "mosquizto/avatars")
             @RequestParam(required = false) String folder) {

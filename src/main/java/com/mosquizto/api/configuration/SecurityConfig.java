@@ -49,7 +49,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // .anyRequest().permitAll())
                         .requestMatchers("/auth/logout").authenticated()
-                        .requestMatchers("/auth/**", "/user/confirm/**", "/error").permitAll()
+                        .requestMatchers("/auth/**", "/users/confirm/**", "/error").permitAll()
                         .requestMatchers("/ws-connection/**").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager.sessionCreationPolicy(STATELESS))

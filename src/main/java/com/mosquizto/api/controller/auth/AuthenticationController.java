@@ -1,4 +1,4 @@
-package com.mosquizto.api.controller;
+package com.mosquizto.api.controller.auth;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.mosquizto.api.dto.request.GoogleLoginRequest;
@@ -55,7 +55,7 @@ public class AuthenticationController {
 
     @Operation(summary = "Refresh token", description = "Use refresh token from Authorization header.", security = @SecurityRequirement(name = "bearerAuth"))
     @ApiResponse(responseCode = "200", description = "Token refreshed")
-    @PostMapping("/refresh-token")
+    @PostMapping("/token/refresh")
     public ResponseData<TokenResponse> refresh(HttpServletRequest request) {
         String refreshToken = AuthorizationHeaderUtils.extractRequiredBearerToken(request);
         return new ResponseData<>(HttpStatus.OK.value(), "Token refreshed successfully", this.authenticationService.refreshToken(refreshToken));
@@ -82,7 +82,7 @@ public class AuthenticationController {
     @Operation(summary = "Verify reset OTP", description = "Validate OTP and return reset token.", security = {})
     @ApiResponse(responseCode = "200", description = "OTP verified")
     @RateLimit(action = "verify-code-forgot-password", maxRequests = 5, timeWindow = 900)
-    @PostMapping("/verify-code-forgot-password")
+    @PostMapping("/password/verify-code")
     public ResponseData<ResetPasswordTokenResponse> verifyCodeForgotPassword(
             @Valid @RequestBody VerifyCodeRequest verifyCodeRequest) {
         return new ResponseData<>(HttpStatus.OK.value(), "Success", this.authenticationService.verifyCodeForgotPassword(verifyCodeRequest));
